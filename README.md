@@ -1,4 +1,5 @@
 # Gridrush
+Mathias Mander, Jaak Prommik, Karl-Martin Lokk
 
 ### Eesmärk
 
