@@ -6,10 +6,10 @@ from datetime import date, datetime, timedelta
 from gridrush.db import loe_paev, salvesta_hinnad, statistika, vanim_hind
 
 # Impordime Eesti ajavööndi ja päeva piiride leidmise funktsiooni
-from gridrush.process_data import EESTI_AEG, paeva_piirid
+from gridrush.day_filter import EESTI_AEG, paeva_piirid
 
 # Impordime Eleringi API-st elektrihindade pärimise funktsiooni
-from tools.fetch_day import fetch_day
+from gridrush.fetch_day import fetch_day
 
 # Kõige varasem kuupäev, mille hulgast juhuslik mängupäev valitakse
 ALGUS = date(2025, 10, 2)
@@ -32,7 +32,12 @@ def laadi_paev(paev):
         return olemas
 
     # Puuduvate andmete korral küsime hinnad Eleringilt ja salvestame
-    hinnad = fetch_day(paev)
+    try:
+        hinnad = fetch_day(paev)
+    except (ValueError, OSError) as viga:
+        print(f"{paev}: hindade laadimine ebaõnnestus: {viga}")
+        return []
+    
     lisatud = salvesta_hinnad(hinnad)
 
     print(f"{paev}: lisatud {lisatud} uut hinnakirjet.")

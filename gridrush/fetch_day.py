@@ -1,5 +1,4 @@
-
-# Küsib Eleringilt Eesti elektrihinnad.
+""" Küsib Eleringilt Eesti elektrihinnad """
 
 # JSON-andmete lugemiseks ja kuupäevadega töötamiseks vajalikud moodulid
 import json
@@ -8,7 +7,7 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 
 # Impordime funktsioonid päeva piiride leidmiseks ja hindade töötlemiseks
-from gridrush.process_data import paeva_piirid, tootle_hinnad
+from gridrush.day_filter import paeva_piirid, tootle_hinnad
 
 # Eleringi avaliku elektrihindade API aadress
 API_URL = "https://dashboard.elering.ee/api/nps/price"

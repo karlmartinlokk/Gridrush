@@ -1,11 +1,11 @@
+""" Seab päeva kestuse ning filtreerib kogu andmetest selle päeva hinnad """
 
-# Kuupäevade, kellaaegade ja ajavahemikega töötamiseks vajalikud moodulid
+#  Kuupäevade, kellaaegade ja ajavahemikega töötamiseks vajalikud moodulid
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 # Eesti ajavöönd arvestab suve/talve
 EESTI_AEG = ZoneInfo("Europe/Tallinn")
-
 
 # Leiab etteantud päeva alguse ja järgmise päeva alguse Eesti aja järgi
 def paeva_piirid(paev):
@@ -24,7 +24,6 @@ def paeva_piirid(paev):
     )
 
     return algus, lopp
-
 
 # Töötleb Eleringi API-st saadud elektrihinnad
 def tootle_hinnad(toorandmed, algus, lopp,

@@ -1,8 +1,9 @@
+""" Loob ja suhtleb andmebaasiga """
 
 # SQLite andmebaasi ja failiteedega töötamiseks vajalikud moodulid
 import sqlite3
 from pathlib import Path
-from gridrush.process_data import paeva_piirid
+from gridrush.day_filter import paeva_piirid
 
 # Andmebaasifaili asukoht Gridrushi projekti data kaustas
 DB_PATH = Path(__file__).resolve().parent.parent / "data" / "gridrush.sqlite3"
@@ -29,17 +30,17 @@ def yhenda():
 def vanim_hind():
     db = yhenda()
 
-    # Järjestab hinnad timestambi järgi ja tagastab esimese kirje
-    tulemus = db.execute("""
-        SELECT timestamp, price
-        FROM electricity_prices
-        ORDER BY timestamp ASC
-        LIMIT 1
-    """).fetchone()
+    try:
+        # Järjestab hinnad timestambi järgi ja tagastab esimese kirje
+        return db.execute("""
+            SELECT timestamp, price
+            FROM electricity_prices
+            ORDER BY timestamp ASC
+            LIMIT 1
+        """).fetchone()
 
-    db.close()
-
-    return tulemus
+    finally:
+        db.close()
 
 
 # Salvestab elektrihinnad andmebaasi ja tagastab uute kirjete arvu

@@ -15,7 +15,7 @@ sys.path.insert(
 
 # Impordime funktsioonid hindade lugemiseks, salvestamiseks ja pärimiseks
 from gridrush.db import loe_paev, salvesta_hinnad
-from tools.fetch_day import fetch_day
+from gridrush.fetch_day import fetch_day
 
 
 # Töötleb veebilehe päringut ja tagastab valitud päeva elektrihinnad

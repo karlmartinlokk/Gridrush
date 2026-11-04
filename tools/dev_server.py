@@ -1,4 +1,3 @@
-
 """Väike lokaalne testserver. TÜ serveris pole seda vaja."""
 
 import importlib.util
