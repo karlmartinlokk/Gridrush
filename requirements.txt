@@ -1,0 +1,3 @@
+
+# Windowsis on Eesti ajavööndi andmete jaoks vaja tzdata
+tzdata>=2025.2

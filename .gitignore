@@ -1,0 +1,15 @@
+
+# Pythoni virtuaalkeskkond
+.venv/
+
+# Pythoni ajutised failid
+__pycache__/
+*.pyc
+
+# SQLite andmebaas
+data/*.sqlite3
+data/*.sqlite3-*
+
+# Salajased keskkonnamuutujad
+.env
+.env.*

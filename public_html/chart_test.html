@@ -1,0 +1,148 @@
+/* VÄGA AJUTINE NÄIDE */
+
+<!DOCTYPE html>
+<html lang="et">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gridrush – hinnagraafiku test</title>
+
+  <style>
+    
+    * {
+      box-sizing: border-box;
+    }
+
+    /* Veebilehe üldine kujundus */
+    body {
+      margin: 0;
+      background: #111417;
+      color: #e2e5e8;
+      font: 14px Arial, sans-serif;
+    }
+
+    /* Veebilehe ülemise päise kujundus */
+    header {
+      border-bottom: 1px solid #30363d;
+      padding: 18px 28px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    /* Peamise sisu paigutus ja maksimaalne laius */
+    main {
+      max-width: 1250px;
+      margin: 38px auto;
+      padding: 0 24px;
+    }
+
+    /* Pealkirja ja kuupäevavaliku paigutamine ühele reale */
+    .bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* Hinnagraafiku pealkirja kujundus */
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    /* Kuupäevavaliku ja laadimisnupu paigutus */
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Kuupäevavaliku ja nupu ühine kujundus */
+    input, button {
+      padding: 10px 12px;
+      border-radius: 5px;
+      border: 1px solid #38414a;
+      color: #dce1e6;
+      background: #1c2126;
+      font: inherit;
+    }
+
+    /* Laadimisnupu kujundus */
+    button {
+      cursor: pointer;
+      background: #313943;
+    }
+
+    /* Muudame nupu värvi, kui hiir on selle kohal */
+    button:hover {
+      background: #414a54;
+    }
+
+    /* Graafikut ja statistikat ümbritsev kujundus */
+    .panel {
+      margin-top: 18px;
+      padding: 20px;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      background: #191d21;
+    }
+
+    /* Teadete ja hinnastatistika kujundus */
+    #message, #stats {
+      margin-top: 10px;
+      color: #9ba5af;
+    }
+
+    /* Määrame hinnagraafiku jaoks kasutatava ala kõrguse */
+    #price-container {
+      position: relative;
+      height: 440px;
+      margin-top: 22px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Veebilehe päis koos Gridrushi nimega -->
+  <header>
+    GRIDRUSH
+    <span style="color:#8b949e;font-size:12px;font-weight:normal">
+      / Market
+    </span>
+  </header>
+
+  <!-- Veebilehe peamine sisu -->
+  <main>
+    <div class="bar">
+      <h1>Eesti elektri börsihind</h1>
+
+      <!-- Kuupäeva valimine ja hindade laadimise nupp -->
+      <div class="controls">
+        <input type="date" id="date" value="2025-10-02">
+        <button id="load">Laadi hinnad</button>
+      </div>
+    </div>
+
+    <!-- Hinnagraafiku ja päeva statistika kuvamise paneel -->
+    <div class="panel">
+      <!-- Siin kuvatakse laadimisteated ja võimalikud veateated -->
+      <div id="message">Laen hindu…</div>
+
+      <!-- JavaScript lisab siia päeva hinnastatistika -->
+      <div id="stats"></div>
+
+      <!-- Canvas-element, millele JavaScript joonistab hinnagraafiku -->
+      <div id="price-container">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <!-- Graafiku teek -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+  <!-- Meie enda graafiku kood -->
+  <script src="js/chart.js"></script>
+</body>
+</html>
