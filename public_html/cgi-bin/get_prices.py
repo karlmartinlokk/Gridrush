@@ -1,3 +1,6 @@
+
+#!/usr/bin/env python3
+
 """Loeb Eesti ühe päeva hinnad SQLite'ist."""
 
 # JSON-andmete, keskkonnamuutujate ja Pythoni moodulitega töötamiseks
@@ -13,9 +16,8 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parents[2])
 )
 
-# Impordime funktsioonid hindade lugemiseks, salvestamiseks ja pärimiseks
-from gridrush.db import loe_paev, salvesta_hinnad
-from gridrush.fetch_day import fetch_day
+# Impordime funktsiooni hindade lugemiseks andmebaasist
+from gridrush.db import loe_paev
 
 
 # Töötleb veebilehe päringut ja tagastab valitud päeva elektrihinnad
@@ -38,19 +40,14 @@ def get_prices_response(query_string):
             "error": "Kasuta kuupäeva kujul YYYY-MM-DD."
         }
 
-    # Loeme hinnad andmebaasist.
-
-    # Kontrollime, kas hinnad on andmebaasis
+    # Loeme hinnad ainult andmebaasist
     hinnad = loe_paev(paev)
 
-    # Kui ei ole, küsime Eleringilt ja salvestame
-    if not hinnad:
-        try:
-            hinnad = fetch_day(paev)
-            salvesta_hinnad(hinnad)
-        except (ValueError, OSError, KeyError) as viga:
-            # Tagastame veakoodi 502, kui andmete pärimine ebaõnnestub
-            return 502, {"error": str(viga)}
+    # Mängus kasutame ainult täielikke 96 hinnapunktiga päevi
+    if len(hinnad) != 96:
+        return 404, {
+            "error": "Selle päeva hinnad puuduvad või on mittetäielikud."
+        }
 
     # Tagastame edukal päringul kuupäeva, hinnaühiku ja hinnakirjed
     return 200, {
