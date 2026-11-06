@@ -1,4 +1,5 @@
-/* VÄGA AJUTINE NÄIDE */
+
+<!-- VÄGA AJUTINE NÄIDE -->
 
 <!DOCTYPE html>
 <html lang="et">
@@ -8,7 +9,6 @@
   <title>Gridrush – hinnagraafiku test</title>
 
   <style>
-    
     * {
       box-sizing: border-box;
     }
@@ -21,7 +21,7 @@
       font: 14px Arial, sans-serif;
     }
 
-    /* Veebilehe ülemise päise kujundus */
+    /* Veebilehe ülemine päis */
     header {
       border-bottom: 1px solid #30363d;
       padding: 18px 28px;
@@ -29,14 +29,14 @@
       font-weight: bold;
     }
 
-    /* Peamise sisu paigutus ja maksimaalne laius */
+    /* Peamise sisu paigutus */
     main {
       max-width: 1250px;
       margin: 38px auto;
       padding: 0 24px;
     }
 
-    /* Pealkirja ja kuupäevavaliku paigutamine ühele reale */
+    /* Pealkirja ja nuppude paigutus */
     .bar {
       display: flex;
       align-items: center;
@@ -45,20 +45,19 @@
       flex-wrap: wrap;
     }
 
-    /* Hinnagraafiku pealkirja kujundus */
     h1 {
       font-size: 18px;
       margin: 0;
       font-weight: 600;
     }
 
-    /* Kuupäevavaliku ja laadimisnupu paigutus */
+    /* Kuupäevavalik ja graafiku juhtnupud */
     .controls {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
-    /* Kuupäevavaliku ja nupu ühine kujundus */
     input, button {
       padding: 10px 12px;
       border-radius: 5px;
@@ -68,18 +67,22 @@
       font: inherit;
     }
 
-    /* Laadimisnupu kujundus */
     button {
       cursor: pointer;
       background: #313943;
     }
 
-    /* Muudame nupu värvi, kui hiir on selle kohal */
-    button:hover {
+    button:hover:not(:disabled) {
       background: #414a54;
     }
 
-    /* Graafikut ja statistikat ümbritsev kujundus */
+    /* Mitteaktiivsed nupud */
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Graafiku paneel */
     .panel {
       margin-top: 18px;
       padding: 20px;
@@ -88,13 +91,13 @@
       background: #191d21;
     }
 
-    /* Teadete ja hinnastatistika kujundus */
+    /* Teadete ja statistika kujundus */
     #message, #stats {
       margin-top: 10px;
       color: #9ba5af;
     }
 
-    /* Määrame hinnagraafiku jaoks kasutatava ala kõrguse */
+    /* Graafiku kõrgus */
     #price-container {
       position: relative;
       height: 440px;
@@ -104,7 +107,8 @@
 </head>
 
 <body>
-  <!-- Veebilehe päis koos Gridrushi nimega -->
+
+  <!-- Veebilehe päis -->
   <header>
     GRIDRUSH
     <span style="color:#8b949e;font-size:12px;font-weight:normal">
@@ -112,37 +116,53 @@
     </span>
   </header>
 
-  <!-- Veebilehe peamine sisu -->
   <main>
     <div class="bar">
       <h1>Eesti elektri börsihind</h1>
 
-      <!-- Kuupäeva valimine ja hindade laadimise nupp -->
+      <!-- Graafiku juhtnupud -->
       <div class="controls">
+
+        <!-- Valime kuupäeva -->
         <input type="date" id="date" value="2025-10-02">
+
+        <!-- Laeme valitud päeva hinnad -->
         <button id="load">Laadi hinnad</button>
+
+        <!-- Käivitame graafiku liikumise -->
+        <button id="start" disabled>Start</button>
+
+        <!-- Peatame graafiku -->
+        <button id="pause" disabled>Pause</button>
+
+        <!-- Alustame päeva algusest -->
+        <button id="reset" disabled>Reset</button>
+
       </div>
     </div>
 
-    <!-- Hinnagraafiku ja päeva statistika kuvamise paneel -->
+    <!-- Hinnagraafiku paneel -->
     <div class="panel">
-      <!-- Siin kuvatakse laadimisteated ja võimalikud veateated -->
+
+      <!-- Praegune mänguaeg ja teated -->
       <div id="message">Laen hindu…</div>
 
-      <!-- JavaScript lisab siia päeva hinnastatistika -->
+      <!-- Seni nähtud hindade statistika -->
       <div id="stats"></div>
 
-      <!-- Canvas-element, millele JavaScript joonistab hinnagraafiku -->
+      <!-- Graafiku joonistamise ala -->
       <div id="price-container">
         <canvas id="priceChart"></canvas>
       </div>
+
     </div>
   </main>
 
-  <!-- Graafiku teek -->
+  <!-- Chart.js teek -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
-  <!-- Meie enda graafiku kood -->
+  <!-- Meie graafiku JavaScript -->
   <script src="js/chart.js"></script>
+
 </body>
 </html>
