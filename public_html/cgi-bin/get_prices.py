@@ -41,7 +41,10 @@ def get_prices_response(query_string):
         }
 
     # Loeme hinnad ainult andmebaasist
-    hinnad = loe_paev(paev)
+    try:
+        hinnad = loe_paev(paev)
+    except sqlite3.Error:
+        return 500, {"error": "Andmebaasi viga."}
 
     # Mängus kasutame ainult täielikke 96 hinnapunktiga päevi
     if len(hinnad) != 96:
