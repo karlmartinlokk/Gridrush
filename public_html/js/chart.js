@@ -11,7 +11,11 @@ let paringuNumber = 0;
 
 // Üks mängupäev kestab ligikaudu 60 sekundit
 // Esimene punkt kuvatakse kohe, järgmised 96 aja jooksul
-const SAMMU_MS = 90000 / 96;
+// Tavalise kiirusega ilmub uus hind iga 30 sekundi järel
+const TAVALINE_SAMM_MS = 90000 / 96;
+
+// Leiame kiiruse valiku HTML-ist
+const kiiruseValik = document.getElementById("speed");
 
 // Leiame HTML-ist vajalikud elemendid
 const kuupaev = document.getElementById("date");
@@ -21,6 +25,28 @@ const stats = document.getElementById("stats");
 const startNupp = document.getElementById("start");
 const pauseNupp = document.getElementById("pause");
 const resetNupp = document.getElementById("reset");
+
+
+// Muudame graafiku kiirust ka liikumise ajal
+function muudaKiirust() {
+    // Kui graafik on peatatud, rakendub kiirus järgmisel Start-il
+    if (taimer === null) {
+        return;
+    }
+
+    // Peatame vana intervalli
+    peataTaimer();
+
+    // Arvutame uue intervalli
+    const kiirus = Number(kiiruseValik.value);
+    const intervall = TAVALINE_SAMM_MS / kiirus;
+
+    // Jätkame sama koha pealt uue kiirusega
+    taimer = setInterval(lisaPunkt, intervall);
+
+    uuendaNupud();
+}
+
 
 
 // Teisendame Unix-timestambi Eesti kellaajaks
@@ -123,6 +149,8 @@ function lisaPunkt() {
 
 
 // Käivitame graafiku liikumise
+
+// Käivitame graafiku valitud kiirusega
 function alustaGraafik() {
     if (
         !chart ||
@@ -132,11 +160,18 @@ function alustaGraafik() {
         return;
     }
 
-    // Lisame iga sammu järel järgmise hinnapunkti
-    taimer = setInterval(lisaPunkt, SAMMU_MS);
+    // Loeme kasutaja valitud kiiruse
+    const kiirus = Number(kiiruseValik.value);
+
+    // Arvutame uue hinnapunkti kuvamise intervalli
+    const intervall = TAVALINE_SAMM_MS / kiirus;
+
+    // Lisame järgmise hinnapunkti valitud aja järel
+    taimer = setInterval(lisaPunkt, intervall);
 
     uuendaNupud();
 }
+
 
 
 // Peatame graafiku liikumise
@@ -334,6 +369,11 @@ async function laadiGraafik() {
 // Seome HTML-i nupud funktsioonidega
 document.getElementById("load").addEventListener(
     "click", laadiGraafik
+);
+
+// Kiiruse muutmine rippmenüüst
+kiiruseValik.addEventListener(
+    "change", muudaKiirust
 );
 
 startNupp.addEventListener(
