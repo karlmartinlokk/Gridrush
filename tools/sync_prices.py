@@ -8,8 +8,10 @@ from gridrush.db import loe_paev, salvesta_hinnad, statistika, vanim_hind
 from gridrush.day_filter import EESTI_AEG, paeva_piirid
 from gridrush.fetch_day import fetch_day
 
-ALGUS = date(2025, 10, 2)
 
+# 2. oktoober 2025 on esimene päev, millest alates kasutame
+# 15-minutilise intervalliga elektrihindu.
+ALGUS = date(2025, 10, 2)
 
 # Kontrollib, kas päevas on tavapärased 96 hinnaperioodi
 def sobiv_paev(paev):
@@ -84,34 +86,44 @@ def uuenda():
             print(f"{paev}: viga - {viga}")
             break
 
-
-# Laeb viimase 365 päeva puuduvad elektrihinnad
+# Laeb kõik puuduvad elektrihinnad alates ALGUS kuupäevast
 def backfill():
     tana = datetime.now(EESTI_AEG).date()
+    vigased_paevad = []
 
-    for i in range(365, 0, -1):
+    for i in range((tana - ALGUS).days, 0, -1):
         paev = tana - timedelta(days=i)
 
-        # Liiga vanu ja kellakeeramise päevi ei lae
-        if paev < ALGUS or not sobiv_paev(paev):
+        # Kellakeeramise päevi ei lae
+        if not sobiv_paev(paev):
             continue
 
-        # Kui päev on täielikult olemas, jätame vahele
-        if taielik_paev(paev, loe_paev(paev)):
+        # Kontrollime, kas päev on juba täielikult olemas
+        try:
+            if taielik_paev(paev, loe_paev(paev)):
+                continue
+        except (OSError, ValueError, KeyError) as viga:
+            print(f"{paev}: kontrollimisel tekkis viga - {viga}")
+            vigased_paevad.append(paev)
             continue
 
+        # Proovime puuduvad hinnad laadida
         try:
             laadi_paev(paev)
 
-            # Väldime liiga sagedasi API-päringuid
+        except (OSError, ValueError, KeyError) as viga:
+            print(f"{paev}: laadimisel tekkis viga - {viga}")
+            vigased_paevad.append(paev)
+
+        finally:
+            # Ootame ka siis, kui laadimisel tekkis viga
             time.sleep(5)
 
-        except (ValueError, OSError, KeyError) as viga:
-            print(f"{paev}: viga - {viga}")
-            break
-
-    print("Andmete laadimine lõpetatud.")
-
+    # Kokkuvõte
+    if vigased_paevad:
+        print(f"Andmete laadimise katse lõpetatud. Vigaseid päevi: {len(vigased_paevad)}")
+    else:
+        print("Andmete laadimine lõpetatud.")
 
 # Esmane andmete laadimine ja uuendamine
 def alusta():
