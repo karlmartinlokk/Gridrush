@@ -97,7 +97,6 @@ body {
 .sidebar-info {
   align-self: stretch;
   padding: 0;
-  transition: filter 0.15 ease;
 }
 
 .sidebar-info {
@@ -109,9 +108,10 @@ body {
   display: flex;
   align-items: center;
   padding: 1rem 0 1rem 1.75rem;
-  color: var(--color-primary);
+  color: var(--color-text-primary);
   text-decoration: none;
   white-space: nowrap;
+  transition: filter 0.15s ease;
 }
 
 .sidebar-item a:hover,
