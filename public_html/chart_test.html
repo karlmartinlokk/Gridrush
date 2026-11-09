@@ -56,9 +56,10 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
-    input, button {
+    input, button, select {
       padding: 10px 12px;
       border-radius: 5px;
       border: 1px solid #38414a;
@@ -129,7 +130,7 @@
         <!-- Laeme valitud päeva hinnad -->
         <button id="load">Laadi hinnad</button>
 
-        <!-- Käivitame graafiku liikumise -->
+                <!-- Käivitame graafiku liikumise -->
         <button id="start" disabled>Start</button>
 
         <!-- Peatame graafiku -->
@@ -137,6 +138,16 @@
 
         <!-- Alustame päeva algusest -->
         <button id="reset" disabled>Reset</button>
+
+        <!-- Mängu kiiruse valimine -->
+        <label for="speed">Kiirus:</label>
+
+        <select id="speed">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="5">5×</option>
+        </select>
 
       </div>
     </div>
