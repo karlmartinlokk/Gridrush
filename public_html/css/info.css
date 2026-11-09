@@ -1,0 +1,51 @@
+main {
+  display: grid;
+  margin-left: 5rem;
+  width: calc(100% - 5rem);
+  height: 100dvh;
+  grid-template-rows: 1fr 9fr;
+}
+
+.page-title {
+  grid-row: 1;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border-bottom: solid var(--color-border);
+}
+
+.page-title h1 {
+    margin: 0 5rem 0 0;
+    padding: 2rem 0 0.5rem 0;
+    text-align: center;
+    width: 10rem;
+}
+
+.information-body {
+    grid-row: 2;
+    margin: 1rem 3.5rem 1rem 1rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /*background-color: var(--color-surface);*/
+}
+
+.information-body span {
+    width: 50rem;
+    margin-bottom: 2.5rem;
+    font-size: 2rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+}
+
+.authors {
+    width: 50rem;
+    margin-bottom: 2.5rem;
+    font-size: 2rem;
+    color: var(--color-text-tertiary);
+    text-align: center;
+}

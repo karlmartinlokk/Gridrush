@@ -1,0 +1,139 @@
+/* globaalsed värvid, saab kasuta kujul color: var(--color-text-primary); */
+:root {
+  --color-bg: #111417;          /* lehe taust */
+  --color-surface: #191d21;     /* paneelid, kaardid */
+  --color-surface-alt: #1c2126; /* sisendväljad */
+  --color-border: #30363d;      /* jooned ja piirjooned */
+
+  --color-text-primary: #e2e5e8;        /* põhitekst */
+  --color-text-secondary: #9ba5af;  /* teine tekst */
+  --color-text-tertiary: #4a5661;  /* kolmas tekst */
+
+  --color-button: #313943;
+  --color-button-hover: #414a54;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font: 14px "Nata Sans", sans-serif;
+}
+
+.sidebar  {
+  position: fixed;
+  z-index: 99;
+  margin: 0;
+  padding: 0;
+  width: 5rem;
+  height: 100%;
+  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  list-style-type: none;
+  overflow: hidden;
+  transition: 0.3s width ease;
+}
+
+.sidebar:hover {
+  width: 14rem;
+}
+
+.sidebar-logo {
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0 1rem 0;
+}
+
+.logo {
+  display: grid;
+  flex-shrink: 0;
+  transform: translateX(10.5%);
+  transition: transform 0.3s ease;
+}
+
+.logo img {
+  grid-area: 1 / 1;
+  display: block;
+  height: 1.6rem;
+}
+
+.logo-letters {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.logo-lines {
+  opacity: 0;
+  transform: translateX(21.3%);
+  transition: transform 0.3s ease, opacity 0.15s ease;
+}
+
+.logo-lines-compact {
+  transition: opacity 0.15s ease;
+}
+
+.sidebar:hover .logo,
+.sidebar:hover .logo-lines {
+  transform: none;
+}
+
+.sidebar:hover .logo-lines,
+.sidebar:hover .logo-letters {
+  opacity: 1;
+}
+
+.sidebar:hover .logo-lines-compact {
+  opacity: 0;
+}
+
+.sidebar-item,
+.sidebar-info {
+  align-self: stretch;
+  padding: 0;
+}
+
+.sidebar-info {
+  margin-top: auto;
+}
+
+.sidebar-item a,
+.sidebar-info a {
+  display: flex;
+  align-items: center;
+  padding: 1rem 0 1rem 1.75rem;
+  color: var(--color-text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+
+.sidebar-item a:hover,
+.sidebar-info a:hover {
+  filter: brightness(0.7)
+}
+
+.sidebar-item img,
+.sidebar-info img {
+  display: block;
+  flex-shrink: 0;
+}
+
+.sidebar-item span,
+.sidebar-info span {
+  margin-left: 1rem;
+  color: var(--color-text-primary);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar:hover .sidebar-item span, 
+.sidebar:hover .sidebar-info span {
+  opacity: 1;
+}

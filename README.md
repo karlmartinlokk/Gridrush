@@ -1,4 +1,5 @@
-# Gridrush
+![Gridrush](public_html/img/gridrush-logo.png)
+
 Mathias Mander, Jaak Prommik, Karl-Martin Lokk
 
 ### Eesmärk
@@ -25,4 +26,4 @@ Enne käskluste läbiviimist on soovitatud luua virtuaalkeskkond (virtual enviro
 ```
    python tools/dev_server.py
 ```
-4. Ava veebibrauseris `http://127.0.0.1:8000/`
+4. Ava veebibrauseris `http://127.0.0.1:8000/index.html`
