@@ -1,18 +1,55 @@
 
-// Kuvab Eesti elektrihinnad joongraafikul.
+// Kuvab Eesti elektrihinnad liikuval joongraafikul.
 
-// Muutuja loodud graafiku hoidmiseks
-let chart;
+// Graafiku ja mängu muutujad
+let chart = null;
+let hinnad = [];
+let hetkeIndeks = 0;
+let taimer = null;
+let laetudKuupaev = "";
+let paringuNumber = 0;
 
-// Leiame HTML-ist kuupäevavaliku, teadete ja statistika elemendid
+// Üks mängupäev kestab ligikaudu 60 sekundit
+// Tavakiiruse peal tekib iga 15-minutiline punkt ehk üks ajahetk iga sekund
+const TAVALINE_SAMM_MS = 90000 / 96;
+
+// Leiame kiiruse valiku HTML-ist
+const kiiruseValik = document.getElementById("speed");
+
+// Leiame HTML-ist vajalikud elemendid
 const kuupaev = document.getElementById("date");
 const teade = document.getElementById("message");
 const stats = document.getElementById("stats");
 
+const startNupp = document.getElementById("start");
+const pauseNupp = document.getElementById("pause");
+const resetNupp = document.getElementById("reset");
 
-// Teisendame Unix-timestambi Eesti kellaajaks.
+
+// Muudame graafiku kiirust ka liikumise ajal
+function muudaKiirust() {
+    // Kui graafik on peatatud, rakendub kiirus järgmisel Start-il
+    if (taimer === null) {
+        return;
+    }
+
+    // Peatame vana intervalli
+    peataTaimer();
+
+    // Arvutame uue intervalli
+    const kiirus = Number(kiiruseValik.value);
+    const intervall = TAVALINE_SAMM_MS / kiirus;
+
+    // Jätkame sama koha pealt uue kiirusega
+    taimer = setInterval(lisaPunkt, intervall);
+
+    uuendaNupud();
+}
+
+
+
+// Teisendame Unix-timestambi Eesti kellaajaks
 function kell(timestamp) {
-    // Unix-timestamp on sekundites, JavaScript kasutab millisekundeid
     return new Date(timestamp * 1000).toLocaleTimeString(
         "et-EE", {
             hour: "2-digit",
@@ -23,91 +60,252 @@ function kell(timestamp) {
 }
 
 
-// Laeme andmed ja joonistame graafiku.
+// Peatame graafiku taimeri
+function peataTaimer() {
+    if (taimer !== null) {
+        clearInterval(taimer);
+        taimer = null;
+    }
+}
+
+
+// Muudame nuppude olekut vastavalt mängu seisule
+function uuendaNupud() {
+    const valmis = chart !== null;
+
+    startNupp.disabled =
+        !valmis ||
+        taimer !== null ||
+        hetkeIndeks >= hinnad.length - 1;
+
+    pauseNupp.disabled = taimer === null;
+    resetNupp.disabled = !valmis;
+}
+
+
+// Uuendame graafikut ja seni nähtud hindade statistikat
+function kuvaSeis() {
+    if (!chart || hinnad.length === 0) {
+        return;
+    }
+
+    const praegune = hinnad[hetkeIndeks];
+
+    // Lisame graafikule ainult praeguse hinnapunkti
+    chart.data.datasets[0].data[hetkeIndeks] =
+        praegune.price;
+
+    // Joonistame muudatuse graafikule
+    chart.update();
+
+    // Statistika jaoks kasutame ainult juba nähtud hindu
+    const nahtudHinnad = hinnad
+        .slice(0, hetkeIndeks + 1)
+        .map(p => p.price);
+
+    const summa = nahtudHinnad.reduce(
+        (a, b) => a + b, 0
+    );
+
+    const min = Math.min(...nahtudHinnad);
+    const max = Math.max(...nahtudHinnad);
+    const keskmine = summa / nahtudHinnad.length;
+
+    stats.textContent =
+        `${nahtudHinnad.length}/${hinnad.length} hinnapunkti · ` +
+        `Min ${min.toFixed(2)} · ` +
+        `Max ${max.toFixed(2)} · ` +
+        `Keskmine ${keskmine.toFixed(2)} €/MWh`;
+
+    // Kuvame kuupäeva ja praeguse mänguaja
+    teade.textContent =
+        `Kuupäev: ${laetudKuupaev} · ` +
+        `Mänguaeg: ${kell(praegune.timestamp)}`;
+}
+
+
+// Lisame graafikule järgmise hinnapunkti
+function lisaPunkt() {
+    if (hetkeIndeks >= hinnad.length - 1) {
+        peataTaimer();
+        uuendaNupud();
+        return;
+    }
+
+    // Liigume järgmise 15-minutilise hinnaperioodini
+    hetkeIndeks++;
+
+    kuvaSeis();
+
+    // Kui kõik hinnad on nähtud, lõpetame päeva
+    if (hetkeIndeks === hinnad.length - 1) {
+        peataTaimer();
+        teade.textContent += " · Päev läbi";
+    }
+
+    uuendaNupud();
+}
+
+
+// Käivitame graafiku liikumise
+
+// Käivitame graafiku valitud kiirusega
+function alustaGraafik() {
+    if (
+        !chart ||
+        taimer !== null ||
+        hetkeIndeks >= hinnad.length - 1
+    ) {
+        return;
+    }
+
+    // Loeme kasutaja valitud kiiruse
+    const kiirus = Number(kiiruseValik.value);
+
+    // Arvutame uue hinnapunkti kuvamise intervalli
+    const intervall = TAVALINE_SAMM_MS / kiirus;
+
+    // Lisame järgmise hinnapunkti valitud aja järel
+    taimer = setInterval(lisaPunkt, intervall);
+
+    uuendaNupud();
+}
+
+
+
+// Peatame graafiku liikumise
+function peataGraafik() {
+    if (taimer === null) {
+        return;
+    }
+
+    peataTaimer();
+    teade.textContent += " · Pausil";
+
+    uuendaNupud();
+}
+
+
+// Alustame sama päeva uuesti esimesest hinnapunktist
+function nulliGraafik() {
+    if (!chart) {
+        return;
+    }
+
+    peataTaimer();
+
+    // Liigume esimese hinnapunkti juurde
+    hetkeIndeks = 0;
+
+    // Eemaldame graafikult kõik varem kuvatud hinnad
+    chart.data.datasets[0].data =
+        Array(hinnad.length).fill(null);
+
+    // Kuvame uuesti ainult esimese hinna
+    kuvaSeis();
+    uuendaNupud();
+}
+
+
+// Laeme valitud päeva hinnad SQLite'ist API kaudu
 async function laadiGraafik() {
-    // Kuvame laadimisteate ja tühjendame eelmise statistika
+    peataTaimer();
+
+    // Tuvastame, milline laadimispäring on kõige uuem
+    const praeguneParing = ++paringuNumber;
+
     teade.textContent = "Laen hindu…";
     stats.textContent = "";
 
-    try {
-        // Koostame API päringu valitud kuupäevaga
-        const url = `cgi-bin/get_prices.py?date=${encodeURIComponent(kuupaev.value)}`;
+    // Eemaldame eelmise graafiku
+    if (chart) {
+        chart.destroy();
+        chart = null;
+    }
 
-        // Küsime Python backendilt andmed ja teisendame JSON-i objektiks
+    hinnad = [];
+    hetkeIndeks = 0;
+    uuendaNupud();
+
+    try {
+        // Küsime valitud kuupäeva hinnad Python backendilt
+        const url =
+            `cgi-bin/get_prices.py?date=${encodeURIComponent(kuupaev.value)}`;
+
         const vastus = await fetch(url);
         const andmed = await vastus.json();
 
-        // Kontrollime, kas päring õnnestus
+        // Ignoreerime vananenud päringu vastust
+        if (praeguneParing !== paringuNumber) {
+            return;
+        }
+
         if (!vastus.ok) {
             throw new Error(
                 andmed.error || "Päring ebaõnnestus."
             );
         }
 
-        // Eraldame hinnakirjed ja hinnaväärtused
-        const hinnad = andmed.prices;
-        const vaartused = hinnad.map(p => p.price);
-
-        // Päeva statistika
-        const summa = vaartused.reduce(
-            (a, b) => a + b, 0
-        );
-
-        // Leiame päeva madalaima, kõrgeima ja keskmise hinna
-        const min = Math.min(...vaartused);
-        const max = Math.max(...vaartused);
-        const keskmine = summa / hinnad.length;
-
-        // Kuvame arvutatud statistika veebilehel
-        stats.textContent =
-            `${hinnad.length} hinnapunkti · ` +
-            `Min ${min.toFixed(2)} · ` +
-            `Max ${max.toFixed(2)} · ` +
-            `Keskmine ${keskmine.toFixed(2)} €/MWh`;
-
-        // Eemaldame eelmise graafiku.
-        if (chart) {
-            chart.destroy();
+        if (
+            !Array.isArray(andmed.prices) ||
+            andmed.prices.length !== 96
+        ) {
+            throw new Error(
+                "Selle päeva 96 hinnapunkti pole saadaval."
+            );
         }
 
-        // Loome uue graafiku.
+        hinnad = andmed.prices;
+        laetudKuupaev = andmed.date;
+
+        // Loome joongraafiku
         chart = new Chart(
             document.getElementById("priceChart"),
             {
-                // Kasutame joongraafikut
                 type: "line",
 
                 data: {
-                    // X-teljel kuvame hinnakirjete kellaajad
+                    // Kellaaegade asukohad on kohe teada
                     labels: hinnad.map(
                         p => kell(p.timestamp)
                     ),
 
                     datasets: [{
-                        // Graafiku hinnaväärtused ja joone kujundus
                         label: "Elektrihind (€/MWh)",
-                        data: vaartused,
+
+                        // Hinnad ilmuvad ükshaaval
+                        data: Array(hinnad.length).fill(null),
+
                         borderColor: "#cbd2da",
                         borderWidth: 2,
-                        pointRadius: 0,
-                        tension: 0,
+
+                        // Näitame väikest punkti ainult joone lõpus
+                        pointRadius: context =>
+                            context.dataIndex === hetkeIndeks
+                                ? 4
+                                : 0,
+
+                        pointHoverRadius: 5,
+                        tension: 0.2,
                         fill: false
                     }]
                 },
 
                 options: {
-                    // Graafik kohandub ekraani suurusega
                     responsive: true,
                     maintainAspectRatio: false,
 
-                    // Hiirega liikudes näitame lähima ajapunkti hinda
+                    // Uue punkti ilmumisel lühike animatsioon
+                    animation: {
+                        duration: 200
+                    },
+
                     interaction: {
                         intersect: false,
                         mode: "index"
                     },
 
                     plugins: {
-                        // Peidame graafiku legendi
                         legend: {
                             display: false
                         }
@@ -115,12 +313,10 @@ async function laadiGraafik() {
 
                     scales: {
                         x: {
-                            // Peidame X-telje ruudustiku
                             grid: {
                                 display: false
                             },
 
-                            // X-telje kellaaegade kujundus
                             ticks: {
                                 color: "#8b949e",
                                 maxTicksLimit: 12,
@@ -129,19 +325,16 @@ async function laadiGraafik() {
                         },
 
                         y: {
-                            // Y-telje pealkiri ja hinnaühik
                             title: {
                                 display: true,
                                 text: "€/MWh",
                                 color: "#8b949e"
                             },
 
-                            // Y-telje ruudustiku värv
                             grid: {
                                 color: "#252a31"
                             },
 
-                            // Y-telje väärtuste värv
                             ticks: {
                                 color: "#8b949e"
                             }
@@ -151,26 +344,49 @@ async function laadiGraafik() {
             }
         );
 
-        // Kuvame edukalt laaditud päeva kuupäeva
-        teade.textContent = `Kuupäev: ${andmed.date}`;
+        // Kuvame ainult esimese hinnapunkti
+        kuvaSeis();
+        uuendaNupud();
 
     } catch (viga) {
-        // Päringu või graafiku loomise vea korral kuvame veateate
+        if (praeguneParing !== paringuNumber) {
+            return;
+        }
+
         teade.textContent = `Viga: ${viga.message}`;
 
-        // Eemaldame eelmise graafiku, et vigaseid andmeid ei kuvataks
         if (chart) {
             chart.destroy();
             chart = null;
         }
+
+        uuendaNupud();
     }
 }
 
 
-// Laadimisnupu vajutamine
+// Seome HTML-i nupud funktsioonidega
 document.getElementById("load").addEventListener(
     "click", laadiGraafik
 );
 
-// Laeme graafiku kohe lehe avamisel.
+// Kiiruse muutmine rippmenüüst
+kiiruseValik.addEventListener(
+    "change", muudaKiirust
+);
+
+startNupp.addEventListener(
+    "click", alustaGraafik
+);
+
+pauseNupp.addEventListener(
+    "click", peataGraafik
+);
+
+resetNupp.addEventListener(
+    "click", nulliGraafik
+);
+
+
+// Laeme graafiku lehe avamisel
 laadiGraafik();
