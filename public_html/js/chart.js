@@ -10,8 +10,7 @@ let laetudKuupaev = "";
 let paringuNumber = 0;
 
 // Üks mängupäev kestab ligikaudu 60 sekundit
-// Esimene punkt kuvatakse kohe, järgmised 96 aja jooksul
-// Tavalise kiirusega ilmub uus hind iga 30 sekundi järel
+// Tavakiiruse peal tekib iga 15-minutiline punkt ehk üks ajahetk iga sekund
 const TAVALINE_SAMM_MS = 90000 / 96;
 
 // Leiame kiiruse valiku HTML-ist
