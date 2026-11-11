@@ -19,39 +19,8 @@ main {
   padding: 2rem 0 0.5rem 2rem;
 }
 
-/* Peavaade */
+/* Simulatsioonigraafiku alumine osa */
 
-.simulation-page {
-  grid-column: 1;
-  display: flex;
-  flex-direction: column;
-  margin: 1rem 0.5rem 1rem 1rem;
-  padding: 1rem;
-  border-radius: 1rem;
-  background-color: var(--color-surface);
-
-  /* ajutine */
-  display: flex;
-  align-items: center;
-}
-
-.simulation-graph-wrapper {
-  width: 100%;
-  padding-bottom: 1rem;
-  border-bottom: solid var(--color-border) 3px;
-}
-
-.simulation-graph {
-  height: 50dvh;
-  margin-bottom: auto;
-  border-radius: 0.5rem;
-  background-color: var(--color-surface-alt);
-
-  /* ajutine */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .buy-sell-container {
   width: 100%;

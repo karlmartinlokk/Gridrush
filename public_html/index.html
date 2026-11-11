@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/interface.css">
+    <link rel="stylesheet" href="css/graph.css">
+
     <script src="js/battery.js" defer></script>
 </head>
 
@@ -59,7 +61,33 @@
         <div class="simulation-page"> 
             <div class="simulation-graph-wrapper">
                 <div class="simulation-graph">
-                    Graafik siia
+                        <div class="bar">
+                            <div>
+                                <div id="message">Laen hindu…</div>
+                                <div id="stats"></div>
+                            </div>
+                            <div class="controls">
+                                <input type="date" id="date" value="2025-10-02">
+                                <button type="button" id="load">Laadi hinnad</button>
+                                <button type="button" id="reset" disabled>Reset</button>
+                                <button type="button" id="play-pause" class="play-pause-button" aria-label="Käivita" disabled>
+                                    <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                                    <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+                                </button>
+                                <div class="speed-buttons" role="group" aria-label="Kiirus">
+                                    <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+                                    <button type="button" data-speed="1" aria-pressed="true">1×</button>
+                                    <button type="button" data-speed="2" aria-pressed="false">2×</button>
+                                    <button type="button" data-speed="5" aria-pressed="false">5×</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div id="price-container">
+                                <canvas id="priceChart"></canvas>
+                            </div>
+                        </div>
                 </div>
             </div>
             <div class="buy-sell-container">
@@ -128,6 +156,12 @@
             </div>
         </div>
     </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+  <!-- Meie graafiku JavaScript -->
+  <script src="js/chart.js"></script>
+
 </body>
 
 </html>

@@ -13,21 +13,30 @@ let paringuNumber = 0;
 // Tavakiiruse peal tekib iga 15-minutiline punkt ehk üks ajahetk iga sekund
 const TAVALINE_SAMM_MS = 90000 / 96;
 
+let kiirus = 1;
+
 // Leiame kiiruse valiku HTML-ist
-const kiiruseValik = document.getElementById("speed");
+const kiiruseNupud = document.querySelectorAll(".speed-buttons button");
 
 // Leiame HTML-ist vajalikud elemendid
 const kuupaev = document.getElementById("date");
 const teade = document.getElementById("message");
 const stats = document.getElementById("stats");
+const praeguneHind = document.getElementById("current-price")
 
-const startNupp = document.getElementById("start");
-const pauseNupp = document.getElementById("pause");
+const playPauseNupp = document.getElementById("play-pause");
 const resetNupp = document.getElementById("reset");
 
 
 // Muudame graafiku kiirust ka liikumise ajal
-function muudaKiirust() {
+function muudaKiirust(event) {
+    const valitudNupp = event.currentTarget;
+    kiirus = Number(valitudNupp.dataset.speed);
+
+    kiiruseNupud.forEach(nupp => {
+        nupp.setAttribute("aria-pressed", String(nupp === valitudNupp));
+    });
+
     // Kui graafik on peatatud, rakendub kiirus järgmisel Start-il
     if (taimer === null) {
         return;
@@ -37,7 +46,6 @@ function muudaKiirust() {
     peataTaimer();
 
     // Arvutame uue intervalli
-    const kiirus = Number(kiiruseValik.value);
     const intervall = TAVALINE_SAMM_MS / kiirus;
 
     // Jätkame sama koha pealt uue kiirusega
@@ -72,13 +80,15 @@ function peataTaimer() {
 // Muudame nuppude olekut vastavalt mängu seisule
 function uuendaNupud() {
     const valmis = chart !== null;
+    const kaib = taimer !== null;
 
-    startNupp.disabled =
+    playPauseNupp.disabled =
         !valmis ||
-        taimer !== null ||
-        hetkeIndeks >= hinnad.length - 1;
+        (!kaib && hetkeIndeks >= hinnad.length - 1);
 
-    pauseNupp.disabled = taimer === null;
+    playPauseNupp.classList.toggle("playing", kaib);
+    playPauseNupp.setAttribute("aria-label", kaib ? "Peata" : "Käivita");
+
     resetNupp.disabled = !valmis;
 }
 
@@ -112,15 +122,11 @@ function kuvaSeis() {
     const keskmine = summa / nahtudHinnad.length;
 
     stats.textContent =
-        `${nahtudHinnad.length}/${hinnad.length} hinnapunkti · ` +
-        `Min ${min.toFixed(2)} · ` +
-        `Max ${max.toFixed(2)} · ` +
+        `Min ${min.toFixed(2)} ` +
+        `Max ${max.toFixed(2)} ` +
         `Keskmine ${keskmine.toFixed(2)} €/MWh`;
 
-    // Kuvame kuupäeva ja praeguse mänguaja
-    teade.textContent =
-        `Kuupäev: ${laetudKuupaev} · ` +
-        `Mänguaeg: ${kell(praegune.timestamp)}`;
+    teade.textContent =`${kell(praegune.timestamp)} | ${praegune.price} €/MWh`;
 }
 
 
@@ -140,7 +146,7 @@ function lisaPunkt() {
     // Kui kõik hinnad on nähtud, lõpetame päeva
     if (hetkeIndeks === hinnad.length - 1) {
         peataTaimer();
-        teade.textContent += " · Päev läbi";
+        teade.textContent = "Päev läbi";
     }
 
     uuendaNupud();
@@ -158,9 +164,6 @@ function alustaGraafik() {
     ) {
         return;
     }
-
-    // Loeme kasutaja valitud kiiruse
-    const kiirus = Number(kiiruseValik.value);
 
     // Arvutame uue hinnapunkti kuvamise intervalli
     const intervall = TAVALINE_SAMM_MS / kiirus;
@@ -180,9 +183,18 @@ function peataGraafik() {
     }
 
     peataTaimer();
-    teade.textContent += " · Pausil";
+    teade.textContent = "Pausil";
 
     uuendaNupud();
+}
+
+
+function lulitaGraafik() {
+    if (taimer === null) {
+        alustaGraafik();
+    } else {
+        peataGraafik();
+    }
 }
 
 
@@ -370,17 +382,13 @@ document.getElementById("load").addEventListener(
     "click", laadiGraafik
 );
 
-// Kiiruse muutmine rippmenüüst
-kiiruseValik.addEventListener(
-    "change", muudaKiirust
-);
+// Kiiruse muutmine nuppudega
+kiiruseNupud.forEach(nupp => {
+    nupp.addEventListener("click", muudaKiirust);
+});
 
-startNupp.addEventListener(
-    "click", alustaGraafik
-);
-
-pauseNupp.addEventListener(
-    "click", peataGraafik
+playPauseNupp.addEventListener(
+    "click", lulitaGraafik
 );
 
 resetNupp.addEventListener(
