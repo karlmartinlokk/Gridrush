@@ -2,17 +2,16 @@ main {
   display: grid;
   margin-left: 5rem;
   width: calc(100% - 5rem);
-  height: 100dvh;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: minmax(10rem, 2fr) minmax(20rem, 1fr);
   grid-template-rows: 1fr 9fr;
 }
 
 .page-title {
-  grid-column: 1 / 3;
+  grid-column: 1;
   grid-row: 1;
   margin: 0 0.5rem 0 0;
   padding: 0;
-  border-bottom: solid var(--color-border);
+  border-bottom: solid var(--color-border) 3px;
 }
 
 .page-title h1 {
@@ -20,12 +19,32 @@ main {
   padding: 2rem 0 0.5rem 2rem;
 }
 
-.interface {
-  grid-column: 3 / 4;
-  grid-row: 1 / 3;
-  margin: 1rem 1rem 1rem 0.5rem;
+/* Peavaade */
+
+.simulation-page {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 1rem 0.5rem 1rem 1rem;
   padding: 1rem;
   border-radius: 1rem;
+  background-color: var(--color-surface);
+
+  /* ajutine */
+  display: flex;
+  align-items: center;
+}
+
+.simulation-graph-wrapper {
+  width: 100%;
+  padding-bottom: 1rem;
+  border-bottom: solid var(--color-border) 3px;
+}
+
+.simulation-graph {
+  height: 50dvh;
+  margin-bottom: auto;
+  border-radius: 0.5rem;
   background-color: var(--color-surface-alt);
 
   /* ajutine */
@@ -34,11 +53,106 @@ main {
   justify-content: center;
 }
 
-.simulation-page {
-  grid-column: 1 / 3;
-  margin: 1rem 0.5rem 1rem 1rem;
-  padding: 1rem;
-  border-radius: 1rem;
+.buy-sell-container {
+  width: 100%;
+  height: 10.5rem;
+  margin-bottom: auto;
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--color-surface-alt);
+  display: flex;
+  flex-direction: column;
+}
+
+.buy-sell-target {
+  display: flex;
+  height: 5rem;
+  margin-bottom: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-text-secondary);
+  gap: 1rem;
+}
+
+.buy-sell-target button {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: 0.5rem;
+  background-color: var(--color-surface-alt);
+  border: none;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.buy-sell-target button:hover {
+  background-color: var(--color-button-hover);
+}
+
+.target-amount-wrapper {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+.target-amount {
+  color: var(--color-text-secondary);
+  font-size: 2.5rem;
+
+}
+
+.target-unit {
+  color: var(--color-text-tertiary);
+  font-size: 1rem;
+}
+
+.battery-buttons {
+  display: flex;
+  width: 100%;
+  gap: 2rem;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+.battery-buttons button {
+  height: 5rem;
+  width: 45%;
+  padding: 0;
+  border-radius: 0.5rem;
+  font: inherit;
+  font-weight: 300;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.battery-buttons button:hover {
+  filter: brightness(0.9)
+}
+
+.battery-buttons button[aria-pressed="true"] {
+  background-color: rgb(164, 0, 0);
+}
+
+.battery-buy-button {
+  background-color: #1E3B3A;
+  color: #6CCBB8;
+  border: solid #2F6E68 3px;
+}
+
+.battery-sell-button {
+  background-color: #3B3020;
+  color: #E0B060;
+  border: solid #82602A 3px;
+}
+
+.event-container {
+  width: 100%;
+  height: 20dvh;
+  margin-bottom: auto;
+  margin-top: 1rem;
+  border-radius: 0.5rem;
   background-color: var(--color-surface-alt);
 
   /* ajutine */

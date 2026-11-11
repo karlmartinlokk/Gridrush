@@ -1,6 +1,7 @@
 /* globaalsed värvid, saab kasuta kujul color: var(--color-text-primary); */
 :root {
   --color-bg: #111417;          /* lehe taust */
+  --color-bg-secondary: #0f1214;          /* teine taust */
   --color-surface: #191d21;     /* paneelid, kaardid */
   --color-surface-alt: #1c2126; /* sisendväljad */
   --color-border: #30363d;      /* jooned ja piirjooned */
@@ -15,6 +16,20 @@
 
 * {
   box-sizing: border-box;
+}
+
+*::-webkit-scrollbar {
+  width: 1em;
+  position: fixed;
+}
+*::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-surface);
+  border: 0.25rem solid transparent;
+  background-clip: padding-box;
+  border-radius: 4rem;
 }
 
 body {
