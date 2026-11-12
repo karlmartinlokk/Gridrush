@@ -23,7 +23,7 @@
   flex-direction: column;
 }
 
-/* Kontrollpaneel */
+/* Ülemine riba */
 
 .bar {
   width: 100%;
@@ -32,9 +32,40 @@
   padding: 1rem 1rem 0 1rem;
 }
 
-#message {
-    font-size: 2rem;
-    color: var(--color-text-primary);
+.graph-message {
+  display: flex;
+  font-variant-numeric: tabular-nums /* iga fonti täht/number sama suur */
+}
+
+#graph-message-time {
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin: auto 0.5rem auto 0;
+}
+
+#graph-message-price {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+#graph-message-price[data-trend="Stabiilne"] {
+  color: var(--color-text-primary);
+}
+
+#graph-message-price[data-trend="Langeb"] {
+  color: rgb(255, 60, 34);
+}
+
+#graph-message-price[data-trend="Tõuseb"] {
+  color: rgb(0, 200, 0);
+}
+
+#graph-message-unit {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin: auto 0 0.5rem 0.5rem
 }
 
 #stats {
@@ -93,7 +124,12 @@
 
 .speed-buttons {
   display: flex;
-  gap: 0.25rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.speed-buttons button {
+  border-radius: 0;
 }
 
 .speed-buttons button[aria-pressed="true"] {
@@ -108,5 +144,5 @@
 }
 
 #price-container {
-    height: 95%;
+  height: 95%;
 }

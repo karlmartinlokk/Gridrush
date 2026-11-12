@@ -10,8 +10,8 @@ let laetudKuupaev = "";
 let paringuNumber = 0;
 
 // Üks mängupäev kestab ligikaudu 60 sekundit
-// Tavakiiruse peal tekib iga 15-minutiline punkt ehk üks ajahetk iga sekund
-const TAVALINE_SAMM_MS = 90000 / 96;
+// Tavakiiruse peal tekib iga 15-minutiline punkt 2 sekundi jooksul
+const TAVALINE_SAMM_MS = 180000 / 96;
 
 let kiirus = 1;
 
@@ -20,9 +20,10 @@ const kiiruseNupud = document.querySelectorAll(".speed-buttons button");
 
 // Leiame HTML-ist vajalikud elemendid
 const kuupaev = document.getElementById("date");
-const teade = document.getElementById("message");
+const teadeAeg = document.getElementById("graph-message-time");
+const teade = document.getElementById("graph-message-price");
+const teadeUhikud = document.getElementById("graph-message-unit");
 const stats = document.getElementById("stats");
-const praeguneHind = document.getElementById("current-price")
 
 const playPauseNupp = document.getElementById("play-pause");
 const resetNupp = document.getElementById("reset");
@@ -100,6 +101,15 @@ function kuvaSeis() {
     }
 
     const praegune = hinnad[hetkeIndeks];
+    
+    // vaatame preaguse hinna muutust võrreldes eelmisega
+    const vahe = () => {
+        if (hetkeIndeks === 0) {
+            return 0
+        }
+        const eelmine = hinnad[hetkeIndeks - 1]
+        return praegune.price - eelmine.price
+    }
 
     // Lisame graafikule ainult praeguse hinnapunkti
     chart.data.datasets[0].data[hetkeIndeks] =
@@ -126,7 +136,19 @@ function kuvaSeis() {
         `Max ${max.toFixed(2)} ` +
         `Keskmine ${keskmine.toFixed(2)} €/MWh`;
 
-    teade.textContent =`${kell(praegune.timestamp)} | ${praegune.price} €/MWh`;
+    teadeAeg.textContent = `${kell(praegune.timestamp)} |`;
+
+    teade.textContent = praegune.price.toFixed(2);
+    console.log(vahe())
+    if (vahe() === 0) {
+        teade.dataset.trend = 'Stabiilne'
+    } else if (vahe() < 0) {
+        teade.dataset.trend = 'Langeb'
+    } else if (vahe() > 0) {
+        teade.dataset.trend = 'Tõuseb'
+    }
+
+    teadeUhikud.textContent = " €/MWh";
 }
 
 
@@ -146,7 +168,9 @@ function lisaPunkt() {
     // Kui kõik hinnad on nähtud, lõpetame päeva
     if (hetkeIndeks === hinnad.length - 1) {
         peataTaimer();
+        teadeAeg.textContent = "";
         teade.textContent = "Päev läbi";
+        teadeUhikud.textContent = "";
     }
 
     uuendaNupud();
@@ -183,7 +207,8 @@ function peataGraafik() {
     }
 
     peataTaimer();
-    teade.textContent = "Pausil";
+
+    // TODO: teha kuhugi paremasse kohta märge et "Pausil"
 
     uuendaNupud();
 }
@@ -226,7 +251,9 @@ async function laadiGraafik() {
     // Tuvastame, milline laadimispäring on kõige uuem
     const praeguneParing = ++paringuNumber;
 
-    teade.textContent = "Laen hindu…";
+    teadeAeg.textContent = "";
+    teade.textContent = "Laen hindu...";
+    teadeUhikud.textContent = "";
     stats.textContent = "";
 
     // Eemaldame eelmise graafiku
@@ -267,6 +294,10 @@ async function laadiGraafik() {
             );
         }
 
+        eelminePaev = () => {
+
+        }
+
         hinnad = andmed.prices;
         laetudKuupaev = andmed.date;
 
@@ -295,10 +326,10 @@ async function laadiGraafik() {
                         pointRadius: context =>
                             context.dataIndex === hetkeIndeks
                                 ? 4
-                                : 0,
+                                : 1,
 
                         pointHoverRadius: 5,
-                        tension: 0.2,
+                        tension: 0.1,
                         fill: false
                     }]
                 },
@@ -308,8 +339,45 @@ async function laadiGraafik() {
                     maintainAspectRatio: false,
 
                     // Uue punkti ilmumisel lühike animatsioon
-                    animation: {
-                        duration: 200
+                    animations: {
+                        x: {
+                            duration: 300,
+                            //järgmise punkti x hakkab genereerima eelmise algusest => sujuv animatsioon
+                            from: context => { 
+                                if (context.type !== "data" || context.dataIndex !== hetkeIndeks) {
+                                    return undefined;
+                                }
+                                if (context.dataIndex === 0) {
+                                    return undefined;
+                                }
+                                const punktid = context.chart.getDatasetMeta(context.datasetIndex).data;
+                                const eelmine = punktid[context.dataIndex - 1];
+
+                                return eelmine.getProps(["x"]).x;
+                            }
+                        },
+                        
+                        y: {
+                            duration: 300,
+                            //järgmise punkti y hakkab genereerima eelmise algusest => sujuv animatsioon
+                            from: context => { 
+                                if (context.type !== "data" || context.dataIndex !== hetkeIndeks) {
+                                    return undefined;
+                                }
+                                if (context.dataIndex === 0) {
+                                    return undefined;
+                                }
+                                const punktid = context.chart.getDatasetMeta(context.datasetIndex).data;
+                                const eelmine = punktid[context.dataIndex - 1];
+
+                                return eelmine.getProps(["y"]).y;
+                            }
+                        },
+                        
+                        radius: {
+                            duration: 0
+                        }
+
                     },
 
                     interaction: {
@@ -365,7 +433,9 @@ async function laadiGraafik() {
             return;
         }
 
+        teadeAeg.textContent = "";
         teade.textContent = `Viga: ${viga.message}`;
+        teadeUhikud.textContent = "";
 
         if (chart) {
             chart.destroy();
