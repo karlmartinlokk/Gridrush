@@ -42,7 +42,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 print(
-    "Ava brauseris http://127.0.0.1:8000/chart_test.html",
+    "Ava brauseris http://127.0.0.1:8000/index.html",
     flush=True
 )
 

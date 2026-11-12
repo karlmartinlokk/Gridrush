@@ -56,11 +56,11 @@
 }
 
 .ri-battery:has(.battery.discharging) {
-  box-shadow: inset 0 0 0.75rem #E0B060;
+  box-shadow: inset 0 0 0.75rem var(--color-discharging);
 }
 
 .ri-battery:has(.battery.charging) {
-  box-shadow: inset 0 0 0.75rem #6CCBB8;
+  box-shadow: inset 0 0 0.75rem var(--color-charging);
 }
 
 .battery-row {
@@ -71,11 +71,11 @@
 }
 
 .battery-row:has(.battery.charging) {
-  --battery-color: #6CCBB8;
+  --battery-color: var(--color-charging);
 }
 
 .battery-row:has(.battery.discharging) {
-  --battery-color: #E0B060;
+  --battery-color: var(--color-discharging);
 }
 
 .battery-fill-top {

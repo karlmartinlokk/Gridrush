@@ -1,0 +1,148 @@
+.simulation-page {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  margin: 1rem 0.5rem 1rem 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background-color: var(--color-surface);
+}
+
+.simulation-graph-wrapper {
+  width: 100%;
+  padding-bottom: 1rem;
+  border-bottom: solid var(--color-border) 3px;
+}
+
+.simulation-graph {
+  height: 50dvh;
+  margin-bottom: auto;
+  border-radius: 0.5rem;
+  background-color: var(--color-surface-alt);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ülemine riba */
+
+.bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 1rem 0 1rem;
+}
+
+.graph-message {
+  display: flex;
+  font-variant-numeric: tabular-nums; /* iga fonti täht/number sama suur */
+}
+
+#graph-message-time {
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin: auto 0.5rem auto 0;
+}
+
+#graph-message-price {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+#graph-message-price[data-trend="Stabiilne"] {
+  color: var(--color-text-primary);
+}
+
+#graph-message-price[data-trend="Langeb"] {
+  color: rgb(255, 60, 34);
+}
+
+#graph-message-price[data-trend="Tõuseb"] {
+  color: rgb(0, 200, 0);
+}
+
+#graph-message-unit {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin: auto 0 0.5rem 0.5rem;
+}
+
+#stats {
+    color: var(--color-text-secondary);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controls button {
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: var(--color-button);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.controls button:hover:enabled {
+  background-color: var(--color-button-hover);
+}
+
+.controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.controls .play-pause-button {
+  width: 2.25rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-pause-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: currentColor;
+}
+
+.play-pause-button .icon-pause,
+.play-pause-button.playing .icon-play {
+  display: none;
+}
+
+.play-pause-button.playing .icon-pause {
+  display: block;
+}
+
+.speed-buttons {
+  display: flex;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.speed-buttons button {
+  border-radius: 0;
+}
+
+.speed-buttons button[aria-pressed="true"] {
+  background-color: var(--color-text-secondary);
+  color: var(--color-bg);
+}
+
+/* Graafik */
+
+.panel {
+  height: 100%;
+}
+
+#price-container {
+  height: 95%;
+}

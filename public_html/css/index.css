@@ -19,39 +19,8 @@ main {
   padding: 2rem 0 0.5rem 2rem;
 }
 
-/* Peavaade */
+/* Simulatsioonigraafiku alumine osa */
 
-.simulation-page {
-  grid-column: 1;
-  display: flex;
-  flex-direction: column;
-  margin: 1rem 0.5rem 1rem 1rem;
-  padding: 1rem;
-  border-radius: 1rem;
-  background-color: var(--color-surface);
-
-  /* ajutine */
-  display: flex;
-  align-items: center;
-}
-
-.simulation-graph-wrapper {
-  width: 100%;
-  padding-bottom: 1rem;
-  border-bottom: solid var(--color-border) 3px;
-}
-
-.simulation-graph {
-  height: 50dvh;
-  margin-bottom: auto;
-  border-radius: 0.5rem;
-  background-color: var(--color-surface-alt);
-
-  /* ajutine */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .buy-sell-container {
   width: 100%;
@@ -128,7 +97,7 @@ main {
 }
 
 .battery-buttons button:hover {
-  filter: brightness(0.9)
+  filter: brightness(0.9);
 }
 
 .battery-buttons button[aria-pressed="true"] {
@@ -137,13 +106,13 @@ main {
 
 .battery-buy-button {
   background-color: #1E3B3A;
-  color: #6CCBB8;
+  color: var(--color-charging);
   border: solid #2F6E68 3px;
 }
 
 .battery-sell-button {
   background-color: #3B3020;
-  color: #E0B060;
+  color: var(--color-discharging);
   border: solid #82602A 3px;
 }
 
