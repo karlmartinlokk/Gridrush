@@ -1,4 +1,3 @@
-
 // Kuvab Eesti elektrihinnad liikuval joongraafikul.
 
 // Graafiku ja mängu muutujad
@@ -6,11 +5,9 @@ let chart = null;
 let hinnad = [];
 let hetkeIndeks = 0;
 let taimer = null;
-let laetudKuupaev = "";
 let paringuNumber = 0;
 
-// Üks mängupäev kestab ligikaudu 60 sekundit
-// Tavakiiruse peal tekib iga 15-minutiline punkt 2 sekundi jooksul
+// Tavakiiruse peal tekib iga 15-minutiline punkt umbes 2 sekundi jooksul
 const TAVALINE_SAMM_MS = 180000 / 96;
 
 let kiirus = 1;
@@ -38,7 +35,7 @@ function muudaKiirust(event) {
         nupp.setAttribute("aria-pressed", String(nupp === valitudNupp));
     });
 
-    // Kui graafik on peatatud, rakendub kiirus järgmisel Start-il
+    // Kui graafik on peatatud, rakendub kiirus järgmisel käivitamisel
     if (taimer === null) {
         return;
     }
@@ -55,6 +52,13 @@ function muudaKiirust(event) {
     uuendaNupud();
 }
 
+
+// helper funktsioon et kasutada css-is defineeritud värve
+function cssVarv(nimi) {
+    return getComputedStyle(document.documentElement)
+        .getPropertyValue(nimi)
+        .trim();
+}
 
 
 // Teisendame Unix-timestambi Eesti kellaajaks
@@ -139,14 +143,13 @@ function kuvaSeis() {
     teadeAeg.textContent = `${kell(praegune.timestamp)} |`;
 
     teade.textContent = praegune.price.toFixed(2);
-    console.log(vahe())
     if (vahe() === 0) {
-        teade.dataset.trend = 'Stabiilne'
+        teade.dataset.trend = 'Stabiilne';
     } else if (vahe() < 0) {
-        teade.dataset.trend = 'Langeb'
+        teade.dataset.trend = 'Langeb';
     } else if (vahe() > 0) {
-        teade.dataset.trend = 'Tõuseb'
-    }
+        teade.dataset.trend = 'Tõuseb';
+    };
 
     teadeUhikud.textContent = " €/MWh";
 }
@@ -170,14 +173,12 @@ function lisaPunkt() {
         peataTaimer();
         teadeAeg.textContent = "";
         teade.textContent = "Päev läbi";
+        teade.dataset.trend = 'Stabiilne'
         teadeUhikud.textContent = "";
     }
 
     uuendaNupud();
 }
-
-
-// Käivitame graafiku liikumise
 
 // Käivitame graafiku valitud kiirusega
 function alustaGraafik() {
@@ -294,12 +295,7 @@ async function laadiGraafik() {
             );
         }
 
-        eelminePaev = () => {
-
-        }
-
         hinnad = andmed.prices;
-        laetudKuupaev = andmed.date;
 
         // Loome joongraafiku
         chart = new Chart(
@@ -319,10 +315,10 @@ async function laadiGraafik() {
                         // Hinnad ilmuvad ükshaaval
                         data: Array(hinnad.length).fill(null),
 
-                        borderColor: "#cbd2da",
+                        borderColor: cssVarv("--color-text-primary"),
                         borderWidth: 2,
 
-                        // Näitame väikest punkti ainult joone lõpus
+                        // Näitame suurt punkti hetkese hinna juures ja väikest iga varasema
                         pointRadius: context =>
                             context.dataIndex === hetkeIndeks
                                 ? 4
@@ -394,13 +390,20 @@ async function laadiGraafik() {
                     scales: {
                         x: {
                             grid: {
-                                display: false
+                                display: true,
+                                color: cssVarv("--color-border")
                             },
 
                             ticks: {
-                                color: "#8b949e",
-                                maxTicksLimit: 12,
-                                maxRotation: 0
+                                color: cssVarv("--color-text-secondary"),
+                                maxRotation: 0,
+                                callback: function(value, index) {
+                                    if (index % 8 === 0) { // iga kahe tunni tagant 
+                                        return this.getLabelForValue(value) // joon + silt
+                                    } else if (index % 4 === 0) { // iga tunni tagant
+                                        return "" // joon + tühi silt (ehk aint joon)
+                                    } else return null // igal muul hetkel pole joont ega silti
+                                },
                             }
                         },
 
@@ -408,15 +411,15 @@ async function laadiGraafik() {
                             title: {
                                 display: true,
                                 text: "€/MWh",
-                                color: "#8b949e"
+                                color: cssVarv("--color-text-secondary")
                             },
 
                             grid: {
-                                color: "#252a31"
+                                color: cssVarv("--color-border")
                             },
 
                             ticks: {
-                                color: "#8b949e"
+                                color: cssVarv("--color-text-secondary")
                             }
                         }
                     }

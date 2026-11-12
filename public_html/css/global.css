@@ -12,6 +12,9 @@
 
   --color-button: #313943;
   --color-button-hover: #414a54;
+
+  --color-charging: #6CCBB8;
+  --color-discharging: #E0B060;
 }
 
 * {

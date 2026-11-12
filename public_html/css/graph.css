@@ -34,7 +34,7 @@
 
 .graph-message {
   display: flex;
-  font-variant-numeric: tabular-nums /* iga fonti täht/number sama suur */
+  font-variant-numeric: tabular-nums; /* iga fonti täht/number sama suur */
 }
 
 #graph-message-time {
@@ -65,7 +65,7 @@
   font-size: 1rem;
   font-weight: 400;
   color: var(--color-text-secondary);
-  margin: auto 0 0.5rem 0.5rem
+  margin: auto 0 0.5rem 0.5rem;
 }
 
 #stats {

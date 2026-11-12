@@ -97,7 +97,7 @@ main {
 }
 
 .battery-buttons button:hover {
-  filter: brightness(0.9)
+  filter: brightness(0.9);
 }
 
 .battery-buttons button[aria-pressed="true"] {
@@ -106,13 +106,13 @@ main {
 
 .battery-buy-button {
   background-color: #1E3B3A;
-  color: #6CCBB8;
+  color: var(--color-charging);
   border: solid #2F6E68 3px;
 }
 
 .battery-sell-button {
   background-color: #3B3020;
-  color: #E0B060;
+  color: var(--color-discharging);
   border: solid #82602A 3px;
 }
 
