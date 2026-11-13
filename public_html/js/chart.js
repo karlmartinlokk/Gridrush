@@ -166,7 +166,6 @@ function kuvaSeis() {
 }
 
 
-// Lisame graafikule järgmise hinnapunkti
 
 // Liigume järgmise hinnapunkti juurde Pythoni kinnitusega.
 async function lisaPunkt() {
