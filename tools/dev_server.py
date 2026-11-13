@@ -105,7 +105,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     print(
-        "Ava http://127.0.0.1:8000/chart_test.html",
+        "Ava http://127.0.0.1:8000/index.html",
         flush=True
     )
 

@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 """Loeb Eesti ühe päeva hinnad SQLite'ist."""
@@ -8,6 +7,7 @@ import json
 import os
 import sys
 from datetime import date
+import sqlite3
 from pathlib import Path
 from urllib.parse import parse_qs
 
