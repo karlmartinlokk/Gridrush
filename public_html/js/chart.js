@@ -284,7 +284,6 @@ function lulitaGraafik() {
 }
 
 
-// Alustame sama päeva uuesti esimesest hinnapunktist
 
 // Lähtestame graafiku ja Pythoni mänguseisu.
 async function nulliGraafik() {
