@@ -219,7 +219,6 @@ async function lisaPunkt() {
 }
 
 
-// Käivitame graafiku valitud kiirusega
 
 // Käivitame graafiku ja vajadusel alustame Pythonis mängu.
 async function alustaGraafik() {
