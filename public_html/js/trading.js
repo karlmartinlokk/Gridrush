@@ -1,192 +1,194 @@
 
-// Gridrushi ostu-müügi kasutajaliides
+// Kauplemise juhtimine. Raha ja aku muutusi arvutab Python.
+let manguseis = null;
+let kogus = 1;
+let paringKaib = false;
 
-let tradeSeis = null;
-let tradeKogus = 1;
-let tradeToimetab = false;
-
-// Leiame HTML-ist vajalikud elemendid
-const tradeEl = id => document.getElementById(id);
-
-
-// Saadame päringu Python backendile
-async function tradeApi(aadress, andmed = {}) {
-    const vastus = await fetch(aadress, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(andmed)
-    });
-
-    const tulemus = await vastus.json();
-
-    if (!vastus.ok) {
-        throw new Error(tulemus.error || "Päring ebaõnnestus.");
-    }
-
-    return tulemus;
-}
+// Leiame uue kasutajaliidese elemendid.
+const leia = valija => document.querySelector(valija);
+const euro = arv => arv.toLocaleString('et-EE', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2
+});
+const teata = tekst => leia('.event-container').textContent = tekst;
 
 
-// Kuvame mänguseisu ja uuendame nuppude olekut
-function tradeKuva() {
-    tradeEl("trade-quantity").textContent = `${tradeKogus} MWh`;
-    tradeEl("trade-start").disabled = tradeToimetab;
+// Kuvame serverist saadud mänguseisu.
+function kuvaKauplemine() {
+    const s = manguseis;
+    leia('.target-amount').textContent =
+        kogus.toFixed(1).replace('.', ',');
 
-    const nupud = ["next", "minus", "plus", "buy", "sell"];
+    // Piirame koguse valimist aku mahutavusega.
+    leia('.target-decrease-button').disabled =
+        !s || paringKaib || kogus <= 1;
 
-    if (!tradeSeis) {
-        for (const nimi of nupud) {
-            tradeEl(`trade-${nimi}`).disabled = true;
-        }
+    leia('.target-increase-button').disabled =
+        !s || paringKaib || kogus >= s.capacity;
 
-        return;
-    }
+    // Kontrollime, kas ost ja müük on võimalikud.
+    const summa = s ? kogus * s.price : 0;
 
-    const s = tradeSeis;
-
-    // Kuvame serverist saadud andmed
-    tradeEl("trade-price").textContent =
-        `${s.price.toFixed(2)} €/MWh`;
-
-    tradeEl("trade-balance").textContent =
-        `${s.balance.toFixed(2)} €`;
-
-    tradeEl("trade-energy").textContent =
-        `${s.energy} / ${s.capacity} MWh`;
-
-    tradeEl("trade-step").textContent =
-        `${s.index + 1} / ${s.total}`;
-
-    tradeEl("trade-time").textContent =
-        new Date(s.timestamp * 1000).toLocaleString(
-            "et-EE", { timeZone: "Europe/Tallinn" }
-        );
-
-    // Keelame nupud, kui tegevus pole võimalik
-    tradeEl("trade-next").disabled =
-        tradeToimetab || s.index >= s.total - 1;
-
-    tradeEl("trade-minus").disabled =
-        tradeToimetab || tradeKogus <= 1;
-
-    tradeEl("trade-plus").disabled =
-        tradeToimetab || tradeKogus >= s.capacity;
-
-    const summa = tradeKogus * s.price;
-
-    tradeEl("trade-buy").disabled =
-        tradeToimetab ||
-        s.energy + tradeKogus > s.capacity ||
+    leia('.battery-buy-button').disabled =
+        !s || paringKaib ||
+        s.energy + kogus > s.capacity ||
         s.balance - summa < -0.000001;
 
-    tradeEl("trade-sell").disabled =
-        tradeToimetab ||
-        s.energy < tradeKogus ||
+    leia('.battery-sell-button').disabled =
+        !s || paringKaib ||
+        s.energy < kogus ||
         s.balance + summa < -0.000001;
+
+    // Kuvame rahajäägi ja aku täituvuse.
+    leia('.ri-money-sum span').textContent =
+        s ? `${euro(s.balance)} €` : '– €';
+
+    leia('.battery-percent').textContent =
+        s ? `${Math.round(s.energy / s.capacity * 100)}%` : '0%';
+
+    leia('.battery-capacity').textContent =
+        s ? `${s.energy} / ${s.capacity} MWh` : '0 / 10 MWh';
+
+    // Aku SVG täitub vastavalt salvestatud energiale.
+    leia('#battery-fill').setAttribute(
+        'width', s ? 184 * s.energy / s.capacity : 0
+    );
+
+    // Kuvame vara väärtuse muutuse võrreldes algse 1000 euroga.
+    const vara = s ? s.balance + s.energy * s.price : 1000;
+    const muutus = (vara - 1000) / 10;
+
+    leia('.ri-gain-percent').textContent = s
+        ? `${muutus >= 0 ? '+' : ''}${muutus.toFixed(1)}%`
+        : '–';
+
+    // Lukustame vajadusel graafiku juhtnupud.
+    if (typeof uuendaNupud === 'function') uuendaNupud();
 }
 
 
-// Teeme päringu ja kuvame tulemuse
-async function tradeParing(aadress, andmed = {}) {
-    if (tradeToimetab) return;
+// Saadame tegevuse Pythonile ja salvestame kinnitatud vastuse.
+async function kauplemiseAPI(aadress, andmed = {}) {
+    if (paringKaib)
+        throw new Error('Eelmine toiming on pooleli.');
 
-    tradeToimetab = true;
-    tradeKuva();
+    paringKaib = true;
+    kuvaKauplemine();
 
     try {
-        tradeSeis = await tradeApi(aadress, andmed);
+        const vastus = await fetch(aadress, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(andmed)
+        });
 
-        tradeEl("trade-message").textContent =
-            tradeSeis.message || "Tegevus õnnestus.";
+        const tulemus = await vastus.json();
 
-    } catch (viga) {
-        tradeEl("trade-message").textContent =
-            `Viga: ${viga.message}`;
+        if (!vastus.ok)
+            throw new Error(tulemus.error || 'Päring ebaõnnestus.');
+
+        manguseis = tulemus;
+        return tulemus;
 
     } finally {
-        tradeToimetab = false;
-        tradeKuva();
+        paringKaib = false;
+        kuvaKauplemine();
     }
 }
 
 
-// Alustame uut mängu
-tradeEl("trade-start").addEventListener("click", () => {
-    const paev = tradeEl("date").value;
+// Ostame või müüme valitud koguse elektrit.
+async function teeTehing(tegevus) {
+    try {
+        const tulemus = await kauplemiseAPI('/api/demo/trade', {
+            action: tegevus,
+            quantity: kogus
+        });
 
-    tradeKogus = 1;
-    tradeSeis = null;
+        teata(tulemus.message);
 
-    // Laeme ka valitud päeva graafiku
-    tradeEl("load").click();
+        // Näitame hetkeks aku laadimise või tühjendamise animatsiooni.
+        const aku = leia('.battery');
 
-    tradeParing("/api/demo/start", {
+        aku.classList.remove('charging', 'discharging');
+        aku.classList.add(
+            tegevus === 'buy' ? 'charging' : 'discharging'
+        );
+
+        setTimeout(() => {
+            aku.classList.remove('charging', 'discharging');
+        }, 800);
+
+    } catch (viga) {
+        teata(`Viga: ${viga.message}`);
+    }
+}
+
+
+// Pluss suurendab valitud elektrikogust.
+leia('.target-increase-button').addEventListener('click', () => {
+    if (manguseis && !paringKaib)
+        kogus = Math.min(kogus + 1, manguseis.capacity);
+
+    kuvaKauplemine();
+});
+
+
+// Miinus vähendab valitud elektrikogust.
+leia('.target-decrease-button').addEventListener('click', () => {
+    if (!paringKaib)
+        kogus = Math.max(1, kogus - 1);
+
+    kuvaKauplemine();
+});
+
+
+// Seome OSTA ja MÜÜ nupud tehingutega.
+leia('.battery-buy-button').addEventListener(
+    'click', () => teeTehing('buy')
+);
+
+leia('.battery-sell-button').addEventListener(
+    'click', () => teeTehing('sell')
+);
+
+
+// Graafik kasutab neid funktsioone mänguaja juhtimiseks.
+window.kauplemine = {
+    get aktiivne() {
+        return manguseis !== null;
+    },
+
+    get toimetab() {
+        return paringKaib;
+    },
+
+    // Alustab Pythonis uue mängu.
+    alusta: paev => kauplemiseAPI('/api/demo/start', {
         date: paev
-    });
-});
+    }),
 
+    // Liigub Pythonis järgmise hinnaperioodi juurde.
+    jargmine: () => kauplemiseAPI('/api/demo/next'),
 
-// Liigume järgmise elektrihinna juurde
-tradeEl("trade-next").addEventListener("click", () => {
-    tradeParing("/api/demo/next");
-});
+    teata,
 
+    // Tühjendab kohaliku mänguvaate.
+    nulli() {
+        if (paringKaib) return;
 
-// Ostame elektrit
-tradeEl("trade-buy").addEventListener("click", () => {
-    tradeParing("/api/demo/trade", {
-        action: "buy",
-        quantity: tradeKogus
-    });
-});
+        manguseis = null;
+        kogus = 1;
 
+        leia('.battery').classList.remove(
+            'charging', 'discharging'
+        );
 
-// Müüme elektrit
-tradeEl("trade-sell").addEventListener("click", () => {
-    tradeParing("/api/demo/trade", {
-        action: "sell",
-        quantity: tradeKogus
-    });
-});
-
-
-// Suurendame kogust
-tradeEl("trade-plus").addEventListener("click", () => {
-    if (
-        tradeSeis &&
-        !tradeToimetab &&
-        tradeKogus < tradeSeis.capacity
-    ) {
-        tradeKogus++;
+        kuvaKauplemine();
+        teata('Mängu alustamiseks vajuta Play.');
     }
-
-    tradeKuva();
-});
+};
 
 
-// Vähendame kogust
-tradeEl("trade-minus").addEventListener("click", () => {
-    if (!tradeToimetab) {
-        tradeKogus = Math.max(1, tradeKogus - 1);
-    }
-
-    tradeKuva();
-});
-
-
-// Kuupäeva muutmisel lähtestame kauplemisvaate
-tradeEl("date").addEventListener("change", () => {
-    tradeSeis = null;
-    tradeKogus = 1;
-
-    tradeEl("trade-message").textContent =
-        "Kuupäev muutus. Alusta uut mängu.";
-
-    tradeKuva();
-});
-
-
-// Kuvame algseisu
-tradeKuva();
+// Kuvame algseisu.
+kuvaKauplemine();
+teata('Mängu alustamiseks vajuta Play.');
