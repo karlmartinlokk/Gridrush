@@ -4,7 +4,7 @@ let manguseis = null;
 let kogus = 1;
 let paringKaib = false;
 
-// Leiame uue kasutajaliidese elemendid.
+// Leiame kasutajaliidese elemendid.
 const leia = valija => document.querySelector(valija);
 const euro = arv => arv.toLocaleString('et-EE', {
     minimumFractionDigits: 2, maximumFractionDigits: 2
@@ -15,6 +15,8 @@ const teata = tekst => leia('.event-container').textContent = tekst;
 // Kuvame serverist saadud mänguseisu.
 function kuvaKauplemine() {
     const s = manguseis;
+
+    // Kuvame valitud elektrikoguse.
     leia('.target-amount').textContent =
         kogus.toFixed(1).replace('.', ',');
 
@@ -53,13 +55,34 @@ function kuvaKauplemine() {
         'width', s ? 184 * s.energy / s.capacity : 0
     );
 
-    // Kuvame vara väärtuse muutuse võrreldes algse 1000 euroga.
-    const vara = s ? s.balance + s.energy * s.price : 1000;
-    const muutus = (vara - 1000) / 10;
+    // Kasumiprotsent tuleb otse Python backendist.
+    const muutusElement = leia('.ri-gain-percent');
+    const muutus = s ? s.profit_percent : null;
 
-    leia('.ri-gain-percent').textContent = s
-        ? `${muutus >= 0 ? '+' : ''}${muutus.toFixed(1)}%`
-        : '–';
+    if (muutus === null) {
+        // Kui mäng pole alanud, näitame halli kriipsu.
+        muutusElement.textContent = '–';
+        muutusElement.style.color =
+            'var(--color-text-tertiary)';
+
+    } else {
+        // Kuvame kasumi või kahjumi protsendi.
+        muutusElement.textContent =
+            `${muutus > 0 ? '+' : ''}${muutus.toFixed(1)}%`;
+
+        // Positiivne on roheline, negatiivne punane.
+        if (muutus > 0) {
+            muutusElement.style.color =
+                'var(--color-charging)';
+        } else if (muutus < 0) {
+            muutusElement.style.color =
+                'var(--color-loss, #8f4a4a)';
+        } else {
+            // Muutuse puudumisel kasutame halli.
+            muutusElement.style.color =
+                'var(--color-text-tertiary)';
+        }
+    }
 
     // Lukustame vajadusel graafiku juhtnupud.
     if (typeof uuendaNupud === 'function') uuendaNupud();
@@ -86,6 +109,7 @@ async function kauplemiseAPI(aadress, andmed = {}) {
         if (!vastus.ok)
             throw new Error(tulemus.error || 'Päring ebaõnnestus.');
 
+        // Salvestame serveri kinnitatud mänguseisu.
         manguseis = tulemus;
         return tulemus;
 
@@ -142,7 +166,7 @@ leia('.target-decrease-button').addEventListener('click', () => {
 });
 
 
-// Seome OSTA ja MÜÜ nupud tehingutega.
+// Seome OSTA ja MÜÜ nupud Pythoni tehingutega.
 leia('.battery-buy-button').addEventListener(
     'click', () => teeTehing('buy')
 );

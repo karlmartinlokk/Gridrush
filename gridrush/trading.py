@@ -13,7 +13,9 @@ class ManguViga(ValueError):
 
 class Kauplemismang:
     def __init__(self):
-        self.raha = 1000.0
+        # Mängu algseaded
+        self.algsumma = 1000.0
+        self.raha = self.algsumma
         self.energia = 0
         self.aku_maht = 10
 
@@ -31,6 +33,18 @@ class Kauplemismang:
 
         hind = self.hinnad[self.indeks]
 
+        # Vara väärtus = raha + akus oleva elektri turuväärtus
+        vara_vaartus = self.raha + self.energia * hind["price"]
+
+        # Arvutame kasumi või kahjumi protsendi algsummast
+        if self.algsumma > 0:
+            kasumi_protsent = (
+                (vara_vaartus - self.algsumma)
+                / self.algsumma
+            ) * 100
+        else:
+            kasumi_protsent = 0.0
+
         return {
             "date": self.paev,
             "index": self.indeks,
@@ -39,7 +53,12 @@ class Kauplemismang:
             "price": hind["price"],
             "balance": round(self.raha, 2),
             "energy": self.energia,
-            "capacity": self.aku_maht
+            "capacity": self.aku_maht,
+
+            # Algsumma, vara väärtus ja kasumi protsent
+            "initial_balance": self.algsumma,
+            "asset_value": round(vara_vaartus, 2),
+            "profit_percent": round(kasumi_protsent, 1)
         }
 
     # Alustab uue mängu valitud kuupäevaga
@@ -69,7 +88,7 @@ class Kauplemismang:
             self.paev = paev
             self.hinnad = hinnad
             self.indeks = 0
-            self.raha = 1000.0
+            self.raha = self.algsumma
             self.energia = 0
 
             return self._seis()
