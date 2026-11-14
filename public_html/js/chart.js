@@ -91,26 +91,29 @@ function peataTaimer() {
     }
 }
 
-// Uuendame graafiku juhtnuppe vastavalt mängu olekule.
+
+
 function uuendaNupud() {
     const kaib = taimer !== null;
 
-    // Serveripäringu ja graafiku laadimise ajal väldime kattuvaid tegevusi.
-    const lukus = kaivitamine || sammKaib || laadimine ||
-        !!window.kauplemine?.toimetab;
+    // Lukustame nupud ainult mängu käivitamisel
+    // ja graafiku laadimisel, mitte iga hinnamuutuse ajal.
+    const lukus = kaivitamine || laadimine;
 
-    // Play toimib ka siis, kui esimest päeva pole veel laetud.
     playPauseNupp.disabled = lukus;
+    resetNupp.disabled = chart === null || lukus;
+
     playPauseNupp.classList.toggle('playing', kaib);
     playPauseNupp.setAttribute(
         'aria-label', kaib ? 'Peata' : 'Käivita'
     );
 
-    resetNupp.disabled = chart === null || lukus;
-    document.getElementById('load').disabled = lukus || kaib;
-    kuupaev.disabled = lukus || kaib;
-}
+    // Kuupäeva muutmine pole mängu ajal lubatud.
+    document.getElementById('load').disabled =
+        lukus || kaib || sammKaib;
 
+    kuupaev.disabled = lukus || kaib || sammKaib;
+}
 
 
 // Uuendame graafikut ja seni nähtud hindade statistikat
@@ -293,13 +296,23 @@ function peataGraafik() {
 }
 
 
+
 function lulitaGraafik() {
+    // Poolelioleva päringu ajal ei tee midagi.
+    if (
+        kaivitamine ||
+        laadimine ||
+        sammKaib ||
+        window.kauplemine?.toimetab
+    ) return;
+
     if (taimer === null) {
         alustaGraafik();
     } else {
         peataGraafik();
     }
 }
+
 
 
 

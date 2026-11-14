@@ -95,7 +95,11 @@ async function kauplemiseAPI(aadress, andmed = {}) {
         throw new Error('Eelmine toiming on pooleli.');
 
     paringKaib = true;
-    kuvaKauplemine();
+
+    // Hinnauuenduse ajal pole vaja nuppe visuaalselt muuta.
+    if (aadress !== '/api/demo/next') {
+        kuvaKauplemine();
+    }
 
     try {
         const vastus = await fetch(aadress, {
