@@ -186,11 +186,15 @@ window.kauplemine = {
         return paringKaib;
     },
 
-    // Alustab Pythonis uue mängu.
-    alusta: paev => kauplemiseAPI('/api/demo/start', {
-        date: paev
-    }),
+    // Kui kuupäeva pole, valib Python ise juhusliku päeva.
+    alusta: paev => kauplemiseAPI(
+        '/api/demo/start',
+        paev ? { date: paev } : {}
+    ),
 
+    get seis() {
+    return manguseis;
+},
     // Liigub Pythonis järgmise hinnaperioodi juurde.
     jargmine: () => kauplemiseAPI('/api/demo/next'),
 
@@ -213,6 +217,7 @@ window.kauplemine = {
 };
 
 
-// Kuvame algseisu.
+// Käivitame mängu automaatselt pärast lehe avamist.
 kuvaKauplemine();
-teata('Mängu alustamiseks vajuta Play.');
+teata('Laen juhuslikku mängupäeva...');
+alustaGraafik();
