@@ -14,16 +14,16 @@ Mängu ülesehitus ja kauplemisvahendid on inspireeritud börsikauplemisplatvorm
 
 Enne käskluste läbiviimist on soovitatud luua virtuaalkeskkond (virtual environment) ja see tööle panna.
 
-1. Paigalda sõltuvused
- ```
+1. Paigalda sõltuvused:
+```
    pip install -r requirements.txt
 ```
-2. Lae andmed andmebaasi, seda repositooriumis ei ole. Esmane laadimine võtab mõnda aega.
+2. Lae andmed andmebaasi, seda avalikus repositooriumis ei ole, esmane laadimine võtab veits aega:
 ```
    python -m tools.sync_prices backfill
 ```
-3. Käivita lokaalne testserver
+3. Käivita lokaalne testserver:
 ```
-   python tools/dev_server.py
+   python -m tools.dev_server
 ```
 4. Ava veebibrauseris `http://127.0.0.1:8000/index.html`

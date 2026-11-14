@@ -129,3 +129,10 @@ main {
   align-items: center;
   justify-content: center;
 }
+
+/* Keelatud ostu-müügi nupud on visuaalselt eristatavad. */
+.buy-sell-target button:disabled,
+.battery-buttons button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
