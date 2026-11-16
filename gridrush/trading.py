@@ -61,6 +61,22 @@ class Kauplemismang:
             "profit_percent": round(kasumi_protsent, 1)
         }
 
+    
+    # Tagastab olemasoleva mänguseisu ilma mängu muutmata.
+    def seis(self):
+        # Kaitseme mänguseisu lugemist sama lukuga nagu tehinguid.
+        with self.lukk:
+            # Kui mängu pole veel alustatud, anname sellest teada.
+            if not self.hinnad:
+                return {"active": False}
+
+            # Tagastame praeguse mänguseisu.
+            return {
+                "active": True,
+                **self._seis()
+            }
+
+
     # Laeb ühe päeva hinnad ja kontrollib ka 15-minutilisi vahesid.
     def _loe_taispaev(self, paev):
         hinnad = loe_paev(paev)

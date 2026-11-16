@@ -443,21 +443,40 @@ async function alustaGraafik() {
 
         let seis;
 
+        
         if (!window.kauplemine.aktiivne) {
-            // Lehe avamisel valib Python juhusliku päeva.
-            // Käsitsi laetud graafiku korral kasutame valitud kuupäeva.
-            seis = await window.kauplemine.alusta(
-                chart ? kuupaev.value : undefined
-            );
+
+            // Lehe avamisel kontrollime kõigepealt,
+            // kas Pythonis on eelmisest külastusest mäng olemas.
+            seis = await window.kauplemine.taasta();
+
+            // Kui olemasolevat mängu ei ole, alustame uut.
+            if (!seis) {
+
+                // Käsitsi laetud graafiku puhul kasutame valitud päeva.
+                // Muul juhul valib Python juhusliku sobiva päeva.
+                seis = await window.kauplemine.alusta(
+                    chart ? kuupaev.value : undefined
+                );
+
+                window.kauplemine.teata('Alustati uut mängu.');
+
+            } else {
+                // Olemasolev mäng leiti.
+                // Raha, aku, kuupäev ja hinnapunkt jäävad samaks.
+                window.kauplemine.teata('Eelmine mäng taastatud.');
+            }
 
         } else {
-            // Pausilt jätkamisel kasutame olemasolevat mänguseisu.
+            // Kui mäng on juba sellel lehel aktiivne,
+            // jätkame pausilt olemasoleva mänguseisuga.
             seis = window.kauplemine.seis || serveriSeis;
 
             if (!seis) {
                 throw new Error('Mänguseis puudub.');
             }
         }
+
 
         serveriSeis = seis;
 
