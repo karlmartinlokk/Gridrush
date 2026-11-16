@@ -165,6 +165,57 @@
         </div>
     </main>
 
+
+
+
+    <!-- Päeva lõpu teavitusaken -->
+    <!-- Avaneb automaatselt, kui mäng jõuab päeva viimase hinnani -->
+    <dialog id="day-end-dialog" class="day-end-dialog">
+
+        <!-- Teavituse ikoon ja pealkiri -->
+        <div class="day-end-icon">✓</div>
+        <h2>Päev on lõppenud!</h2>
+
+        <!-- Selgitame mängijale, et tema mänguseis säilib -->
+        <p>
+            Simulatsioon on jõudnud päeva lõppu.
+            Sinu raha ja salvestatud elekter säilivad.
+        </p>
+
+        <!-- Näitame mängija viimast kinnitatud mänguseisu -->
+        <!-- Väärtused lisatakse JavaScriptiga Pythoni vastusest -->
+        <div class="day-end-stats">
+            <div>
+                <span>Rahajääk</span>
+                <strong id="day-end-balance">–</strong>
+            </div>
+
+            <div>
+                <span>Aku</span>
+                <strong id="day-end-energy">–</strong>
+            </div>
+
+            <div>
+                <span>Kasum / kahjum</span>
+                <strong id="day-end-profit">–</strong>
+            </div>
+        </div>
+
+        <!-- Kuvame veateate, kui järgmise päeva laadimine ebaõnnestub -->
+        <p id="day-end-error" role="alert"></p>
+
+        <!-- Mängija saab ise järgmise päeva käivitada -->
+        <button type="button" id="next-day-button">
+            Alusta uut päeva
+        </button>
+
+        <!-- Sulgeb teavituse ja jätab mängu pausile -->
+        <button type="button" id="later-button">
+            Jätka hiljem
+        </button>
+    </dialog>
+
+
 </body>
 
 </html>
