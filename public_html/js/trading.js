@@ -113,8 +113,19 @@ async function kauplemiseAPI(aadress, andmed = {}) {
         if (!vastus.ok)
             throw new Error(tulemus.error || 'Päring ebaõnnestus.');
 
-        // Salvestame serveri kinnitatud mänguseisu.
+       
+        // Salvestame Pythonist saadud mänguseisu.
         manguseis = tulemus;
+
+        // Pärast ostu või müüki sünkroonime graafiku serveri kellaga.
+        // Nii kasutab graafik sama hinnapunkti, millega tehing tehti.
+        if (
+            aadress === '/api/demo/trade' &&
+            typeof window.synkroniseeriManguseis === 'function'
+        ) {
+            window.synkroniseeriManguseis(tulemus);
+        }
+
         return tulemus;
 
     } finally {
@@ -241,8 +252,49 @@ window.kauplemine = {
     get seis() {
     return manguseis;
 },
-    // Liigub Pythonis järgmise hinnaperioodi juurde.
-    jargmine: () => kauplemiseAPI('/api/demo/next'),
+   
+// Uuendame brauseris kuvatavat mänguseisu kohaliku hinnapunktiga.
+// See funktsioon ei saada serverisse ühtegi päringut.
+kuvaHind: (hind, indeks) => {
+    if (!manguseis || paringKaib) return;
+
+    // Arvutame kuvatava vara väärtuse ja kasumiprotsendi.
+    const vara = manguseis.balance + manguseis.energy * hind.price;
+
+    const protsent = (
+        (vara - manguseis.initial_balance) /
+        manguseis.initial_balance
+    ) * 100;
+
+    // Uuendame ainult brauseri kuvamisandmeid.
+    // Päris tehinguhinna määrab endiselt Python.
+    manguseis = {
+        ...manguseis,
+        index: indeks,
+        price: hind.price,
+        timestamp: hind.timestamp,
+        asset_value: Math.round(vara * 100) / 100,
+        profit_percent: Math.round(protsent * 10) / 10
+    };
+
+    kuvaKauplemine();
+},
+
+    // Jätkame serveripõhist mängukella.
+    jatka: () => kauplemiseAPI('/api/demo/resume'),
+
+    // Paneme serveripõhise mängukella pausile.
+    peata: () => kauplemiseAPI('/api/demo/pause'),
+
+    // Muudame serveris mängukiirust.
+    muudaKiirust: speed => kauplemiseAPI(
+        '/api/demo/speed',
+        { speed }
+    ),
+
+    // Alustame järgmist päeva pärast eelmise päeva lõppu.
+    uusPaev: () => kauplemiseAPI('/api/demo/next-day'),
+
 
     teata,
 

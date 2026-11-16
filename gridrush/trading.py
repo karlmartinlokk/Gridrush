@@ -1,12 +1,22 @@
 
-"""Gridrushi elektrienergia ostmise ja müümise loogika."""
+"""Gridrushi kauplemismäng ja serveripõhine mängukell."""
 
 import random
+import time
 from datetime import date
 from threading import Lock
 
 from gridrush.db import loe_paev, saadaval_paevad
 from gridrush.day_filter import paeva_piirid
+
+
+# Üks mängupäev kestab tavakiirusel kolm minutit.
+# Iga päev sisaldab 96 elektrihinna perioodi.
+PAEVA_PIKKUS = 180.0
+PERIOODI_PIKKUS = PAEVA_PIKKUS / 96
+
+# Kiirused, mida mängija saab valida.
+LUBATUD_KIIRUSED = (0.5, 1.0, 2.0, 5.0)
 
 
 class ManguViga(ValueError):
@@ -15,39 +25,81 @@ class ManguViga(ValueError):
 
 class Kauplemismang:
     def __init__(self):
-        # Mängu algseaded
+        # Iga mängija saab oma mänguobjekti ja luku.
+        self.lukk = Lock()
+
+        # Mängu algseaded.
         self.algsumma = 1000.0
         self.raha = self.algsumma
         self.energia = 0
         self.aku_maht = 10
 
+        # Praegune mängupäev ja hinnapunkt.
         self.paev = None
         self.hinnad = []
         self.indeks = 0
 
-        # Väldib samaaegsete tehingute konflikte
-        self.lukk = Lock()
+        # Serveripõhise mängukella muutujad.
+        self.mangitud_sekundid = 0.0
+        self.viimane_kell = None
+        self.kaib = False
+        self.paev_labi = False
+        self.kiirus = 1.0
 
-    # Tagastab mängija praeguse seisu
+    def _uuenda_kell(self):
+        """Arvutab kehtiva hinnapunkti serveris möödunud aja põhjal."""
+
+        # Pausil olles mänguaeg edasi ei liigu.
+        if not self.kaib:
+            return
+
+        # monotonic() sobib ajavahede mõõtmiseks.
+        praegu = time.monotonic()
+
+        if self.viimane_kell is not None:
+            vahe = max(0.0, praegu - self.viimane_kell)
+
+            # Mänguaeg sõltub kasutaja valitud kiirusest.
+            self.mangitud_sekundid += vahe * self.kiirus
+
+        self.viimane_kell = praegu
+
+        # Kui terve mängupäev on läbi, peatame mängukella.
+        if self.mangitud_sekundid >= PAEVA_PIKKUS:
+            self.mangitud_sekundid = PAEVA_PIKKUS
+            self.paev_labi = True
+            self.kaib = False
+            self.viimane_kell = None
+
+        # Arvutame hinnaindeksi mänguaja järgi.
+        # Brauserist indeksit ei usaldata.
+        self.indeks = min(
+            len(self.hinnad) - 1,
+            int(self.mangitud_sekundid / PERIOODI_PIKKUS)
+        )
+
     def _seis(self):
+        """Koostab mängija praeguse mänguseisu."""
+
         if not self.hinnad:
             raise ManguViga("Mäng pole alustatud.")
 
         hind = self.hinnad[self.indeks]
 
-        # Vara väärtus = raha + akus oleva elektri turuväärtus
+        # Vara väärtus = raha + akus oleva elektri turuväärtus.
         vara_vaartus = self.raha + self.energia * hind["price"]
 
-        # Arvutame kasumi või kahjumi protsendi algsummast
+        # Kasumi või kahjumi protsent algsummast.
         if self.algsumma > 0:
-            kasumi_protsent = (
+            kasum = (
                 (vara_vaartus - self.algsumma)
                 / self.algsumma
             ) * 100
         else:
-            kasumi_protsent = 0.0
+            kasum = 0.0
 
         return {
+            "active": True,
             "date": self.paev,
             "index": self.indeks,
             "total": len(self.hinnad),
@@ -58,134 +110,258 @@ class Kauplemismang:
             "capacity": self.aku_maht,
             "initial_balance": self.algsumma,
             "asset_value": round(vara_vaartus, 2),
-            "profit_percent": round(kasumi_protsent, 1)
+            "profit_percent": round(kasum, 1),
+
+            # Brauser kasutab neid mängukella kuvamiseks.
+            "elapsed_seconds": round(self.mangitud_sekundid, 6),
+            "speed": self.kiirus,
+            "running": self.kaib,
+            "day_finished": self.paev_labi
         }
 
-    
-    # Tagastab olemasoleva mänguseisu ilma mängu muutmata.
     def seis(self):
-        # Kaitseme mänguseisu lugemist sama lukuga nagu tehinguid.
+        """Tagastab olemasoleva mänguseisu seda lähtestamata."""
+
         with self.lukk:
-            # Kui mängu pole veel alustatud, anname sellest teada.
+            # Kui selles seansis mängu pole, tagastame active: false.
             if not self.hinnad:
                 return {"active": False}
 
-            # Tagastame praeguse mänguseisu.
-            return {
-                "active": True,
-                **self._seis()
-            }
+            # Värskendame kõigepealt serveripõhist mängukella.
+            self._uuenda_kell()
 
+            return self._seis()
 
-    # Laeb ühe päeva hinnad ja kontrollib ka 15-minutilisi vahesid.
     def _loe_taispaev(self, paev):
+        """Laeb ja kontrollib ühe päeva kõik 96 hinnaperioodi."""
+
         hinnad = loe_paev(paev)
         algus, lopp = paeva_piirid(paev)
 
         oodatud = list(range(
-            int(algus.timestamp()), int(lopp.timestamp()), 900
+            int(algus.timestamp()),
+            int(lopp.timestamp()),
+            900
         ))
+
         ajatemplid = [h["timestamp"] for h in hinnad]
 
         if len(oodatud) != 96 or ajatemplid != oodatud:
-            raise ManguViga("Päeva hinnad puuduvad või on mittetäielikud.")
+            raise ManguViga(
+                "Päeva hinnad puuduvad või on mittetäielikud."
+            )
 
         return hinnad
 
-    # Alustab uue mängu etteantud või juhuslikust sobivast päevast.
     def alusta(self, paev=None):
+        """Alustab ainult selle mängija jaoks uue mängu."""
+
+        # Kui kuupäeva pole antud, valime juhusliku päeva.
         if paev is None:
             paevad = saadaval_paevad()
+
             if not paevad:
-                raise ManguViga("Andmebaasis pole sobivaid hinnapäevi.")
+                raise ManguViga(
+                    "Andmebaasis pole sobivaid hinnapäevi."
+                )
+
             paev = random.choice(paevad)
 
+        # Kontrollime kuupäeva vormingut.
         try:
             if (
                 not isinstance(paev, str)
                 or date.fromisoformat(paev).isoformat() != paev
             ):
                 raise ValueError
+
         except ValueError:
             raise ManguViga("Vigane kuupäev.")
 
         hinnad = self._loe_taispaev(paev)
 
         with self.lukk:
+            # Lähtestame raha, aku ja hinnapunkti.
             self.paev = paev
             self.hinnad = hinnad
             self.indeks = 0
             self.raha = self.algsumma
             self.energia = 0
+
+            # Lähtestame mängukella.
+            self.mangitud_sekundid = 0.0
+            self.viimane_kell = None
+            self.kaib = False
+            self.paev_labi = False
+            self.kiirus = 1.0
+
             return self._seis()
 
-    # Liigub järgmise hinna või järgmise sobiva päeva juurde.
-    def jargmine(self):
+    def jatka(self):
+        """Käivitab või jätkab serveripõhist mängukella."""
+
         with self.lukk:
             if not self.hinnad:
                 raise ManguViga("Mäng pole alustatud.")
 
-            if self.indeks < len(self.hinnad) - 1:
-                self.indeks += 1
-            else:
-                paevad = saadaval_paevad()
-                if not paevad:
-                    raise ManguViga("Järgmist hinnapäeva ei leitud.")
+            self._uuenda_kell()
 
-                # Võtame kronoloogiliselt järgmise olemasoleva päeva.
-                # Andmebaasi lõpust alustame vajadusel esimesest päevast.
-                uus_paev = next(
-                    (p for p in paevad if p > self.paev),
-                    paevad[0]
+            if self.paev_labi:
+                raise ManguViga(
+                    "Päev on lõppenud. Alusta uut päeva."
                 )
-                uued_hinnad = self._loe_taispaev(uus_paev)
 
-                self.paev = uus_paev
-                self.hinnad = uued_hinnad
-                self.indeks = 0
-                # Raha ja aku ei muutu päeva vahetumisel.
+            # Juba töötavat mängukella uuesti ei alustata.
+            if not self.kaib:
+                self.viimane_kell = time.monotonic()
+                self.kaib = True
 
             return self._seis()
 
-    # Ostab või müüb valitud koguse elektrienergiat
+    def peata(self):
+        """Peatab mängukella ja jätab hinna samaks."""
+
+        with self.lukk:
+            if not self.hinnad:
+                return {"active": False}
+
+            # Arvestame enne peatamist möödunud aja sisse.
+            self._uuenda_kell()
+
+            self.kaib = False
+            self.viimane_kell = None
+
+            return self._seis()
+
+    def muuda_kiirust(self, kiirus):
+        """Muudab mängukiirust ilma senist mänguaega kaotamata."""
+
+        if (
+            type(kiirus) not in (float, int)
+            or kiirus not in LUBATUD_KIIRUSED
+        ):
+            raise ManguViga(
+                "Lubatud kiirused: 0.5, 1, 2, 5."
+            )
+
+        with self.lukk:
+            if not self.hinnad:
+                raise ManguViga("Mäng pole alustatud.")
+
+            # Arvestame senise aja veel vana kiirusega.
+            self._uuenda_kell()
+
+            # Järgmised sekundid liiguvad uue kiirusega.
+            self.kiirus = float(kiirus)
+
+            return self._seis()
+
+    def uus_paev(self):
+        """Alustab järgmise päeva, säilitades raha ja aku."""
+
+        with self.lukk:
+            if not self.hinnad:
+                raise ManguViga("Mäng pole alustatud.")
+
+            self._uuenda_kell()
+
+            # Päeva ei tohi vahetada enne selle lõppu.
+            if not self.paev_labi:
+                raise ManguViga(
+                    "Praegune päev pole veel lõppenud."
+                )
+
+            paevad = saadaval_paevad()
+
+            if not paevad:
+                raise ManguViga(
+                    "Järgmist hinnapäeva ei leitud."
+                )
+
+            # Valime kronoloogiliselt järgmise olemasoleva päeva.
+            # Andmebaasi lõpust liigume vajadusel esimesse päeva.
+            uus_paev = next(
+                (p for p in paevad if p > self.paev),
+                paevad[0]
+            )
+
+            uued_hinnad = self._loe_taispaev(uus_paev)
+
+            # Vahetame päeva ja alustame indeksist 0.
+            self.paev = uus_paev
+            self.hinnad = uued_hinnad
+            self.indeks = 0
+
+            # Lähtestame ainult mängukella.
+            self.mangitud_sekundid = 0.0
+            self.viimane_kell = None
+            self.kaib = False
+            self.paev_labi = False
+
+            # Raha, aku ja kiirus jäävad samaks.
+            return self._seis()
+
     def tehing(self, tegevus, kogus):
+        """Ostab või müüb elektrit serveri määratud hinnaga."""
+
         if tegevus not in ("buy", "sell"):
             raise ManguViga("Tundmatu tehing.")
 
         if type(kogus) is not int or kogus <= 0:
-            raise ManguViga("Kogus peab olema positiivne täisarv.")
+            raise ManguViga(
+                "Kogus peab olema positiivne täisarv."
+            )
 
         with self.lukk:
             if not self.hinnad:
                 raise ManguViga("Mäng pole alustatud.")
 
-            # Hind võetakse serverist, mitte brauserist
+            # Arvutame serveri kellaga tehingu tegeliku hinnapunkti.
+            self._uuenda_kell()
+
+            if self.paev_labi:
+                raise ManguViga(
+                    "Päev on lõppenud. Alusta uut päeva."
+                )
+
+            # Pausi ajal saab kaubelda peatatud hinnaga.
             hind = self.hinnad[self.indeks]["price"]
             summa = round(kogus * hind, 2)
 
             if tegevus == "buy":
                 if self.energia + kogus > self.aku_maht:
-                    raise ManguViga("Akus pole piisavalt ruumi.")
+                    raise ManguViga(
+                        "Akus pole piisavalt ruumi."
+                    )
 
                 if self.raha - summa < -0.000001:
-                    raise ManguViga("Ostmiseks pole piisavalt raha.")
+                    raise ManguViga(
+                        "Ostmiseks pole piisavalt raha."
+                    )
 
                 self.raha = round(self.raha - summa, 2)
                 self.energia += kogus
+
                 teade = f"Ostsid {kogus} MWh elektrit."
 
             else:
                 if self.energia < kogus:
-                    raise ManguViga("Akus pole piisavalt elektrit.")
+                    raise ManguViga(
+                        "Akus pole piisavalt elektrit."
+                    )
 
-                # Negatiivse hinna korral võib müümine maksta
+                # Negatiivse hinna puhul võib müümine maksta.
                 if self.raha + summa < -0.000001:
-                    raise ManguViga("Müümiseks pole piisavalt raha.")
+                    raise ManguViga(
+                        "Müümiseks pole piisavalt raha."
+                    )
 
                 self.raha = round(self.raha + summa, 2)
                 self.energia -= kogus
+
                 teade = f"Müüsid {kogus} MWh elektrit."
 
             vastus = self._seis()
             vastus["message"] = teade
+
             return vastus
