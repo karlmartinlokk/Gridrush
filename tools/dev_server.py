@@ -48,15 +48,25 @@ class Handler(SimpleHTTPRequestHandler):
 
         self.wfile.write(body)
 
-    # GET-päringud: elektrihinnad ja veebilehe failid
+
+    # GET-päringud: mänguseis, elektrihinnad ja veebilehe failid.
     def do_GET(self):
         url = urlsplit(self.path)
 
-        if url.path == "/cgi-bin/get_prices.py":
+        # Tagastame olemasoleva mängu seisu.
+        # Kasutame seda simulatsioonilehele tagasi tulles.
+        if url.path == "/api/demo/state":
+            self.saada_json(200, mang.seis())
+
+        # Tagastame valitud päeva elektrihinnad.
+        elif url.path == "/cgi-bin/get_prices.py":
             status, andmed = api.get_prices_response(url.query)
             self.saada_json(status, andmed)
+
+        # Muud päringud on tavalised veebilehe failid.
         else:
             super().do_GET()
+
 
     # POST-päringud: mängu alustamine, aeg ja tehingud
     def do_POST(self):

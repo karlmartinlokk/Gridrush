@@ -1,10 +1,12 @@
 
 """Gridrushi elektrienergia ostmise ja müümise loogika."""
 
+import random
 from datetime import date
 from threading import Lock
 
-from gridrush.db import loe_paev
+from gridrush.db import loe_paev, saadaval_paevad
+from gridrush.day_filter import paeva_piirid
 
 
 class ManguViga(ValueError):
@@ -54,15 +56,50 @@ class Kauplemismang:
             "balance": round(self.raha, 2),
             "energy": self.energia,
             "capacity": self.aku_maht,
-
-            # Algsumma, vara väärtus ja kasumi protsent
             "initial_balance": self.algsumma,
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasumi_protsent, 1)
         }
 
-    # Alustab uue mängu valitud kuupäevaga
-    def alusta(self, paev):
+    
+    # Tagastab olemasoleva mänguseisu ilma mängu muutmata.
+    def seis(self):
+        # Kaitseme mänguseisu lugemist sama lukuga nagu tehinguid.
+        with self.lukk:
+            # Kui mängu pole veel alustatud, anname sellest teada.
+            if not self.hinnad:
+                return {"active": False}
+
+            # Tagastame praeguse mänguseisu.
+            return {
+                "active": True,
+                **self._seis()
+            }
+
+
+    # Laeb ühe päeva hinnad ja kontrollib ka 15-minutilisi vahesid.
+    def _loe_taispaev(self, paev):
+        hinnad = loe_paev(paev)
+        algus, lopp = paeva_piirid(paev)
+
+        oodatud = list(range(
+            int(algus.timestamp()), int(lopp.timestamp()), 900
+        ))
+        ajatemplid = [h["timestamp"] for h in hinnad]
+
+        if len(oodatud) != 96 or ajatemplid != oodatud:
+            raise ManguViga("Päeva hinnad puuduvad või on mittetäielikud.")
+
+        return hinnad
+
+    # Alustab uue mängu etteantud või juhuslikust sobivast päevast.
+    def alusta(self, paev=None):
+        if paev is None:
+            paevad = saadaval_paevad()
+            if not paevad:
+                raise ManguViga("Andmebaasis pole sobivaid hinnapäevi.")
+            paev = random.choice(paevad)
+
         try:
             if (
                 not isinstance(paev, str)
@@ -72,17 +109,7 @@ class Kauplemismang:
         except ValueError:
             raise ManguViga("Vigane kuupäev.")
 
-        hinnad = loe_paev(paev)
-
-        # Mängimiseks peab olema 96 järjestikust hinnapunkti
-        if (
-            len(hinnad) != 96
-            or any(
-                hinnad[i + 1]["timestamp"] - hinnad[i]["timestamp"] != 900
-                for i in range(95)
-            )
-        ):
-            raise ManguViga("Päeva hinnad puuduvad või on mittetäielikud.")
+        hinnad = self._loe_taispaev(paev)
 
         with self.lukk:
             self.paev = paev
@@ -90,19 +117,34 @@ class Kauplemismang:
             self.indeks = 0
             self.raha = self.algsumma
             self.energia = 0
-
             return self._seis()
 
-    # Liigub järgmise elektrihinna juurde
+    # Liigub järgmise hinna või järgmise sobiva päeva juurde.
     def jargmine(self):
         with self.lukk:
             if not self.hinnad:
                 raise ManguViga("Mäng pole alustatud.")
 
-            if self.indeks >= len(self.hinnad) - 1:
-                raise ManguViga("Päeva viimane hind on käes.")
+            if self.indeks < len(self.hinnad) - 1:
+                self.indeks += 1
+            else:
+                paevad = saadaval_paevad()
+                if not paevad:
+                    raise ManguViga("Järgmist hinnapäeva ei leitud.")
 
-            self.indeks += 1
+                # Võtame kronoloogiliselt järgmise olemasoleva päeva.
+                # Andmebaasi lõpust alustame vajadusel esimesest päevast.
+                uus_paev = next(
+                    (p for p in paevad if p > self.paev),
+                    paevad[0]
+                )
+                uued_hinnad = self._loe_taispaev(uus_paev)
+
+                self.paev = uus_paev
+                self.hinnad = uued_hinnad
+                self.indeks = 0
+                # Raha ja aku ei muutu päeva vahetumisel.
+
             return self._seis()
 
     # Ostab või müüb valitud koguse elektrienergiat
@@ -130,7 +172,6 @@ class Kauplemismang:
 
                 self.raha = round(self.raha - summa, 2)
                 self.energia += kogus
-
                 teade = f"Ostsid {kogus} MWh elektrit."
 
             else:
@@ -143,10 +184,8 @@ class Kauplemismang:
 
                 self.raha = round(self.raha + summa, 2)
                 self.energia -= kogus
-
                 teade = f"Müüsid {kogus} MWh elektrit."
 
             vastus = self._seis()
             vastus["message"] = teade
-
             return vastus

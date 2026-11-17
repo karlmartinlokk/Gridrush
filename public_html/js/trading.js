@@ -95,7 +95,11 @@ async function kauplemiseAPI(aadress, andmed = {}) {
         throw new Error('Eelmine toiming on pooleli.');
 
     paringKaib = true;
-    kuvaKauplemine();
+
+    // Hinnauuenduse ajal pole vaja nuppe visuaalselt muuta.
+    if (aadress !== '/api/demo/next') {
+        kuvaKauplemine();
+    }
 
     try {
         const vastus = await fetch(aadress, {
@@ -118,6 +122,45 @@ async function kauplemiseAPI(aadress, andmed = {}) {
         kuvaKauplemine();
     }
 }
+
+
+// Küsime Pythonilt, kas mäng on juba käimas.
+async function taastaKauplemine() {
+
+    // Väldime mitut samaaegset päringut.
+    if (paringKaib) {
+        throw new Error('Eelmine toiming on pooleli.');
+    }
+
+    paringKaib = true;
+    kuvaKauplemine();
+
+    try {
+        // Küsime olemasoleva mänguseisu ilma seda muutmata.
+        const vastus = await fetch('/api/demo/state', {
+            cache: 'no-store'
+        });
+
+        const tulemus = await vastus.json();
+
+        if (!vastus.ok) {
+            throw new Error(
+                tulemus.error || 'Mänguseisu ei saanud taastada.'
+            );
+        }
+
+        // Kui mäng on olemas, salvestame serveri kinnitatud seisu.
+        // Muidu jätame mänguseisu tühjaks.
+        manguseis = tulemus.active ? tulemus : null;
+
+        return manguseis;
+
+    } finally {
+        // Uuendame rahajäägi, aku ja tehingunupud.
+        paringKaib = false;
+        kuvaKauplemine();
+    }
+};
 
 
 // Ostame või müüme valitud koguse elektrit.
@@ -186,11 +229,18 @@ window.kauplemine = {
         return paringKaib;
     },
 
-    // Alustab Pythonis uue mängu.
-    alusta: paev => kauplemiseAPI('/api/demo/start', {
-        date: paev
-    }),
+    // Taastab Pythonis olemasoleva mänguseisu.
+    taasta: taastaKauplemine,
 
+    // Kui kuupäeva pole, valib Python ise juhusliku päeva.
+    alusta: paev => kauplemiseAPI(
+        '/api/demo/start',
+        paev ? { date: paev } : {}
+    ),
+
+    get seis() {
+    return manguseis;
+},
     // Liigub Pythonis järgmise hinnaperioodi juurde.
     jargmine: () => kauplemiseAPI('/api/demo/next'),
 
@@ -214,5 +264,6 @@ window.kauplemine = {
 
 
 // Kuvame algseisu.
+// Mängu käivitab chart.js pärast lehe laadimist.
 kuvaKauplemine();
-teata('Mängu alustamiseks vajuta Play.');
+teata('Laen mänguseisu...');

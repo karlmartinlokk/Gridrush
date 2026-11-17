@@ -146,3 +146,102 @@
 #price-container {
   height: 95%;
 }
+
+
+/* Päeva lõpu teavitusakna põhikujundus */
+.day-end-dialog {
+    width: min(420px, calc(100% - 32px));
+    padding: 32px;
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    text-align: center;
+}
+
+/* Tumendame ülejäänud veebilehe, kui teavitus on avatud */
+.day-end-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+/* Roheline ikoon teavituse ülaosas */
+.day-end-icon {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: var(--color-surface-alt);
+    color: var(--color-charging);
+    display: grid;
+    place-items: center;
+    font-size: 26px;
+}
+
+/* Teavituse pealkiri */
+.day-end-dialog h2 {
+    margin: 0 0 12px;
+}
+
+/* Teavituse selgitav tekst */
+.day-end-dialog p {
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+/* Mängija rahajäägi, aku ja kasumi kuvamise ala */
+.day-end-stats {
+    display: grid;
+    gap: 12px;
+    margin: 24px 0;
+    padding: 16px;
+    background: var(--color-bg-secondary);
+    border-radius: 10px;
+    text-align: left;
+}
+
+/* Paigutame mänguseisu nimetuse ja väärtuse kõrvuti */
+.day-end-stats div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Mänguseisu nimetused on vähem silmatorkavad */
+.day-end-stats span {
+    color: var(--color-text-secondary);
+}
+
+/* Mõlema tegevusnupu ühine kujundus */
+.day-end-dialog button {
+    width: 100%;
+    padding: 13px;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    font: inherit;
+}
+
+/* Uue päeva alustamise nupp */
+#next-day-button {
+    background: var(--color-charging);
+    color: #111417;
+    font-weight: 700;
+}
+
+/* Takistame korduvat vajutamist päeva laadimise ajal */
+#next-day-button:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+/* Mängu pausile jätmise nupp */
+#later-button {
+    margin-top: 8px;
+    background: transparent;
+    color: var(--color-text-secondary);
+}
+
+/* Kuvame järgmise päeva laadimise vead punasena */
+#day-end-error {
+    color: var(--color-loss);
+}
