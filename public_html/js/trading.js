@@ -96,10 +96,8 @@ async function kauplemiseAPI(aadress, andmed = {}) {
 
     paringKaib = true;
 
-    // Hinnauuenduse ajal pole vaja nuppe visuaalselt muuta.
-    if (aadress !== '/api/demo/next') {
-        kuvaKauplemine();
-    }
+   // Lukustame nupud päringu töötlemise ajaks.
+    kuvaKauplemine();
 
     try {
         const vastus = await fetch(aadress, {

@@ -43,9 +43,12 @@ viimane_puhastus = 0.0
 class Handler(SimpleHTTPRequestHandler):
 
     def leia_mang(self):
-        """Leiab küpsise järgi mängija isikliku mänguobjekti."""
+        """Leiab olemasoleva mängu, kuid ei loo uut seanssi."""
 
-        # Proovime lugeda brauseri varem saadud seansitunnust.
+        # Iga päringu alguses eeldame, et uut küpsist pole vaja.
+        self.uus_seanss = None
+
+        # Loeme brauseri olemasoleva seansiküpsise.
         purk = cookies.SimpleCookie()
 
         try:
@@ -63,7 +66,7 @@ class Handler(SimpleHTTPRequestHandler):
         # Kaitseme seansside sõnastikku samaaegsete päringute eest.
         with seansid_lukk:
 
-            # Eemaldame vanu seansse kõige rohkem kord minutis.
+            # Eemaldame aegunud seansid kõige rohkem kord minutis.
             if praegu - viimane_puhastus >= 60:
                 vanad = [
                     k for k, v in seansid.items()
@@ -75,24 +78,40 @@ class Handler(SimpleHTTPRequestHandler):
 
                 viimane_puhastus = praegu
 
-            if tunnus not in seansid:
-                # Uus brauser saab juhusliku turvalise tunnuse.
+            # Kui küpsis puudub või seanss on aegunud,
+            # ei loo me uut mängu ega küpsist.
+            kirje = seansid.get(tunnus) if tunnus else None
+
+            if kirje is None:
+                return None
+
+            # Olemasolev mängija jätkab oma varasemat mängu.
+            kirje["last_access"] = praegu
+
+            return kirje["game"]
+
+    def loo_seanss(self, mang):
+        """Loob uue seansi ainult pärast edukat mängu alustamist."""
+
+        praegu = time.monotonic()
+
+        with seansid_lukk:
+
+            # Loome juhusliku ja turvalise seansitunnuse.
+            tunnus = secrets.token_urlsafe(32)
+
+            # Väldime võimalikku olemasoleva tunnuse kordumist.
+            while tunnus in seansid:
                 tunnus = secrets.token_urlsafe(32)
 
-                seansid[tunnus] = {
-                    "game": Kauplemismang(),
-                    "last_access": praegu
-                }
+            # Salvestame uue mängija mänguobjekti.
+            seansid[tunnus] = {
+                "game": mang,
+                "last_access": praegu
+            }
 
-                # Uus küpsis saadetakse järgmise JSON-vastusega.
-                self.uus_seanss = tunnus
-
-            else:
-                # Olemasolev brauser jätkab oma varasemat mängu.
-                seansid[tunnus]["last_access"] = praegu
-                self.uus_seanss = None
-
-            return seansid[tunnus]["game"]
+        # Uus küpsis lisatakse mängu alustamise JSON-vastusele.
+        self.uus_seanss = tunnus
 
     def saada_json(self, status, andmed):
         """Saadab brauserile JSON-vastuse."""
@@ -112,7 +131,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
 
-        # Seansiküpsis lisatakse ainult uuele mängijale.
+        # Seansiküpsis lisatakse ainult uue mängija loomisel.
         if getattr(self, "uus_seanss", None):
             cookie = (
                 f"gridrush_session={self.uus_seanss}; "
@@ -133,9 +152,15 @@ class Handler(SimpleHTTPRequestHandler):
         url = urlsplit(self.path)
 
         if url.path == "/api/demo/state":
-            # Iga brauser saab ainult oma mänguseisu.
+            # Kontrollime, kas brauseril on olemasolev mäng.
+            # Kui ei ole, ei loo me uut seanssi ega küpsist.
             mang = self.leia_mang()
-            self.saada_json(200, mang.seis())
+
+            if mang is None:
+                self.saada_json(200, {"active": False})
+
+            else:
+                self.saada_json(200, mang.seis())
 
         elif url.path == "/cgi-bin/get_prices.py":
             # Hindade andmebaas on kõigile mängijatele ühine.
@@ -184,34 +209,53 @@ class Handler(SimpleHTTPRequestHandler):
             if not isinstance(andmed, dict):
                 raise ManguViga("Vigane päring.")
 
-            # Leiame selle brauseri mängu.
+            # Otsime olemasolevat seanssi.
+            # See funktsioon ei loo uut mängu ega küpsist.
             mang = self.leia_mang()
 
-            # Valime soovitud tegevuse.
             if aadress == "/api/demo/start":
+
+                # Kui mängijal pole veel seanssi,
+                # loome uue mänguobjekti.
+                uus_mang = mang is None
+
+                if uus_mang:
+                    mang = Kauplemismang()
+
+                # Alustame mängu kõigepealt.
+                # Kui see ebaõnnestub, uut seanssi ei salvestata.
                 tulemus = mang.alusta(
                     andmed.get("date")
                 )
 
-            elif aadress == "/api/demo/trade":
-                tulemus = mang.tehing(
-                    andmed.get("action"),
-                    andmed.get("quantity")
-                )
-
-            elif aadress == "/api/demo/resume":
-                tulemus = mang.jatka()
-
-            elif aadress == "/api/demo/pause":
-                tulemus = mang.peata()
-
-            elif aadress == "/api/demo/speed":
-                tulemus = mang.muuda_kiirust(
-                    andmed.get("speed")
-                )
+                # Alles edukas mängu alustamine loob uue seansi.
+                if uus_mang:
+                    self.loo_seanss(mang)
 
             else:
-                tulemus = mang.uus_paev()
+                # Kõik muud toimingud nõuavad olemasolevat mängu.
+                if mang is None:
+                    raise ManguViga("Mäng pole alustatud.")
+
+                if aadress == "/api/demo/trade":
+                    tulemus = mang.tehing(
+                        andmed.get("action"),
+                        andmed.get("quantity")
+                    )
+
+                elif aadress == "/api/demo/resume":
+                    tulemus = mang.jatka()
+
+                elif aadress == "/api/demo/pause":
+                    tulemus = mang.peata()
+
+                elif aadress == "/api/demo/speed":
+                    tulemus = mang.muuda_kiirust(
+                        andmed.get("speed")
+                    )
+
+                else:
+                    tulemus = mang.uus_paev()
 
             self.saada_json(200, tulemus)
 
