@@ -10,6 +10,10 @@ Mängija saab osta elektrit madala hinnaga, salvestada selle akudesse ning müü
 
 Mängu ülesehitus ja kauplemisvahendid on inspireeritud börsikauplemisplatvormidest (näiteks TradingView), kus mängija saab jälgida hinnagraafikuid, analüüsida hinnamuutusi ning automatiseerida ostu- ja müügitehinguid.
 
+### Rühmatöö käitumisnormid
+
+Plaanis otsustatud normid on üle vaadatud ja meile jätkuvalt tähtsad, otsustasime need jätta samale kujule. Siiani probleeme ei ole tekkinud ja kõik on aktiivselt kaasa teinud.
+
 ### Käivitamine oma arvutis
 
 Enne käskluste läbiviimist on soovitatud luua virtuaalkeskkond (virtual environment) ja see tööle panna.
