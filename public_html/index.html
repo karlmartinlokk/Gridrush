@@ -73,6 +73,7 @@
                                     <div id="graph-message-unit"> </div>
                                 </div>
                                 <div id="stats"></div>
+
                             </div>
                             <div class="controls">
                                 <input type="date" id="date" value="2025-10-02">
@@ -82,11 +83,14 @@
                                     <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
                                     <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
                                 </button>
-                                <div class="speed-buttons" role="group" aria-label="Kiirus">
-                                    <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
-                                    <button type="button" data-speed="1" aria-pressed="true">1×</button>
-                                    <button type="button" data-speed="2" aria-pressed="false">2×</button>
-                                    <button type="button" data-speed="5" aria-pressed="false">5×</button>
+                                <div class="speed-control-group">
+                                    <div id="day-count" aria-live="polite">Päev –</div>
+                                    <div class="speed-buttons" role="group" aria-label="Kiirus">
+                                        <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+                                        <button type="button" data-speed="1" aria-pressed="true">1×</button>
+                                        <button type="button" data-speed="2" aria-pressed="false">2×</button>
+                                        <button type="button" data-speed="5" aria-pressed="false">5×</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

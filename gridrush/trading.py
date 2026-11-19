@@ -38,6 +38,7 @@ class Kauplemismang:
         self.paev = None
         self.hinnad = []
         self.indeks = 0
+        self.paevade_arv = 0
 
         # Serveripõhise mängukella muutujad.
         self.mangitud_sekundid = 0.0
@@ -101,6 +102,7 @@ class Kauplemismang:
         return {
             "active": True,
             "date": self.paev,
+            "day_number": self.paevade_arv,
             "index": self.indeks,
             "total": len(self.hinnad),
             "timestamp": hind["timestamp"],
@@ -184,6 +186,7 @@ class Kauplemismang:
             # Lähtestame raha, aku ja hinnapunkti.
             self.paev = paev
             self.hinnad = hinnad
+            self.paevade_arv = 1
             self.indeks = 0
             self.raha = self.algsumma
             self.energia = 0
@@ -291,6 +294,7 @@ class Kauplemismang:
             self.paev = uus_paev
             self.hinnad = uued_hinnad
             self.indeks = 0
+            self.paevade_arv += 1
 
             # Lähtestame ainult mängukella.
             self.mangitud_sekundid = 0.0

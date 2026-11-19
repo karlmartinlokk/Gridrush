@@ -34,6 +34,7 @@ const teadeAeg = document.getElementById("graph-message-time");
 const teade = document.getElementById("graph-message-price");
 const teadeUhikud = document.getElementById("graph-message-unit");
 const stats = document.getElementById("stats");
+const paevadeLoendur = document.getElementById("day-count");
 
 const playPauseNupp = document.getElementById("play-pause");
 const resetNupp = document.getElementById("reset");
@@ -54,6 +55,13 @@ const PERIOODI_PIKKUS_SEK = PAEVA_PIKKUS_SEK / 96;
 // Salvestame serveri kinnitatud mänguseisu ja mängukella lähtepunkti.
 function synkroniseeriKell(seis) {
     serveriSeis = seis;
+
+    // Kuvame serveri kinnitatud mängupäeva numbri.
+    paevadeLoendur.textContent =
+        Number.isInteger(seis.day_number) && seis.day_number > 0
+            ? `${seis.day_number}. päev`
+            : 'Päev –';
+
     kiirus = Number(seis.speed);
 
     kellaKinnitus = {
@@ -841,6 +849,8 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
         window.kauplemine?.nulli();
         serveriSeis = null;
         kellaKinnitus = null;
+        // Käsitsi uue päeva valimisel eemaldame vana mängu loenduri.
+        paevadeLoendur.textContent = 'Päev –';
     }
 
     laadimine = true;

@@ -245,3 +245,22 @@
 #day-end-error {
     color: var(--color-loss);
 }
+
+
+/* Päevade loendur ja kiirusenupud */
+.speed-control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* Päevade loendur */
+#day-count {
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
