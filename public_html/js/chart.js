@@ -1,3 +1,4 @@
+
 // Kuvab Eesti elektrihinnad liikuval joongraafikul.
 
 // Graafiku ja mängu muutujad
@@ -33,38 +34,172 @@ const teadeAeg = document.getElementById("graph-message-time");
 const teade = document.getElementById("graph-message-price");
 const teadeUhikud = document.getElementById("graph-message-unit");
 const stats = document.getElementById("stats");
+const paevadeLoendur = document.getElementById("day-count");
 
 const playPauseNupp = document.getElementById("play-pause");
 const resetNupp = document.getElementById("reset");
 
-// Päeva lõpu teavitusaken (lisatakse index.html faili).
+// Päeva lõpu teavitusaken.
 const paevaLopuDialog = document.getElementById("day-end-dialog");
 
 
-// Muudame graafiku kiirust ka liikumise ajal.
-function muudaKiirust(event) {
-    const valitudNupp = event.currentTarget;
-    kiirus = Number(valitudNupp.dataset.speed);
+// Serveri viimase kinnitatud mängukella andmed.
+// Brauser arvutab hinnapunkte nende põhjal ega saada iga punkti kohta POST-i.
+let kellaKinnitus = null;
+let kellaKinnituseAeg = 0;
 
+const PAEVA_PIKKUS_SEK = 180;
+const PERIOODI_PIKKUS_SEK = PAEVA_PIKKUS_SEK / 96;
+
+
+// Salvestame serveri kinnitatud mänguseisu ja mängukella lähtepunkti.
+function synkroniseeriKell(seis) {
+    serveriSeis = seis;
+
+    // Kuvame serveri kinnitatud mängupäeva numbri.
+    paevadeLoendur.textContent =
+        Number.isInteger(seis.day_number) && seis.day_number > 0
+            ? `${seis.day_number}. päev`
+            : 'Päev –';
+
+    kiirus = Number(seis.speed);
+
+    kellaKinnitus = {
+        sekundid: Number(seis.elapsed_seconds),
+        kiirus,
+        kaib: Boolean(seis.running)
+    };
+
+    kellaKinnituseAeg = performance.now();
+
+    // Näitame HTML-is serveris kehtivat mängukiirust.
     kiiruseNupud.forEach(nupp => {
-        nupp.setAttribute("aria-pressed", String(nupp === valitudNupp));
+        nupp.setAttribute(
+            'aria-pressed',
+            String(Number(nupp.dataset.speed) === kiirus)
+        );
     });
+}
 
-    // Kui graafik on peatatud, rakendub kiirus järgmisel käivitamisel.
-    if (taimer === null) {
+
+// Arvutame kohaliku mänguaja serveri kinnitatud kella järgi.
+function praeguneManguaeg() {
+    if (!kellaKinnitus) return 0;
+
+    const juurde = kellaKinnitus.kaib
+        ? Math.max(
+            0,
+            (performance.now() - kellaKinnituseAeg) / 1000
+        ) * kellaKinnitus.kiirus
+        : 0;
+
+    return Math.min(
+        PAEVA_PIKKUS_SEK,
+        kellaKinnitus.sekundid + juurde
+    );
+}
+
+
+// Graafiku värskendamine pärast ostu või müügi serverivastust.
+// trading.js kutsub seda funktsiooni pärast kinnitatud tehingut.
+window.synkroniseeriManguseis = seis => {
+    if (!seis) return;
+
+    synkroniseeriKell(seis);
+
+    if (!chart || seis.date !== graafikuPaev) return;
+
+    const uusIndeks = Math.min(hinnad.length - 1, seis.index);
+
+    // Täidame ka vahepeal nähtavaks muutunud hinnapunktid.
+    for (let i = hetkeIndeks + 1; i <= uusIndeks; i++) {
+        chart.data.datasets[0].data[i] = hinnad[i].price;
+    }
+
+    hetkeIndeks = uusIndeks;
+    kuvaSeis();
+};
+
+
+// Hoiame meeles, kas mängija oli ise mängu pausile pannud.
+function salvestaMangijaSoov(kaib) {
+    try {
+        sessionStorage.setItem(
+            'gridrush_was_playing',
+            kaib ? '1' : '0'
+        );
+    } catch (_viga) {
+        // Salvestamise piirang ei tohi mängu peatada.
+    }
+}
+
+
+// Loeme mängija viimase salvestatud Play/Pause valiku.
+function eelmineMangijaSoov() {
+    try {
+        return sessionStorage.getItem('gridrush_was_playing');
+    } catch (_viga) {
+        return null;
+    }
+}
+
+
+// Kiiruse muutmisel teavitame Pythonit ainult ühe POST-päringuga.
+async function muudaKiirust(event) {
+    if (
+        kaivitamine ||
+        sammKaib ||
+        laadimine ||
+        window.kauplemine?.toimetab
+    ) return;
+
+    const uusKiirus = Number(event.currentTarget.dataset.speed);
+
+    // Enne mängu alustamist piisab kohaliku valiku uuendamisest.
+    if (!window.kauplemine?.aktiivne) {
+        kiirus = uusKiirus;
+
+        kiiruseNupud.forEach(nupp => {
+            nupp.setAttribute(
+                'aria-pressed',
+                String(Number(nupp.dataset.speed) === kiirus)
+            );
+        });
+
         return;
     }
 
-    // Peatame vana intervalli.
-    peataTaimer();
+    try {
+        // Server arvestab senise aja vana kiirusega
+        // ja hakkab seejärel kasutama uut kiirust.
+        const seis = await window.kauplemine.muudaKiirust(
+            uusKiirus
+        );
 
-    // Arvutame uue intervalli.
-    const intervall = TAVALINE_SAMM_MS / kiirus;
+        synkroniseeriKell(seis);
 
-    // Jätkame sama koha pealt uue kiirusega.
-    taimer = setInterval(lisaPunkt, intervall);
+        if (seis.day_finished) {
+            // Kui päev sai päringu ajal läbi, peatame graafiku.
+            peataTaimer();
+            paevLabi = true;
+            avaPaevaLopuTeavitus();
 
-    uuendaNupud();
+        } else if (taimer !== null) {
+            // Uus kiirus rakendub ka kohaliku graafiku uuendamisele.
+            peataTaimer();
+
+            taimer = setInterval(
+                lisaPunkt,
+                TAVALINE_SAMM_MS / kiirus
+            );
+        }
+
+    } catch (viga) {
+        window.kauplemine?.teata(`Viga: ${viga.message}`);
+
+    } finally {
+        uuendaNupud();
+    }
 }
 
 
@@ -139,21 +274,20 @@ function avaPaevaLopuTeavitus() {
 }
 
 
-// Alustame järgmist päeva ainult mängija kinnitamisel.
+// Päev vahetub ainult mängija soovil; raha ja aku jäävad alles.
 async function alustaUutPaeva() {
-    // Väldime korduvaid või kattuvaid päevavahetusi.
     if (
         !paevLabi ||
         sammKaib ||
+        kaivitamine ||
         laadimine ||
         window.kauplemine?.toimetab
     ) return;
 
-    // Leiame teavituse nupu ja veateate elemendi.
     const nupp = document.getElementById('next-day-button');
     const veateade = document.getElementById('day-end-error');
 
-    // Märgime, et järgmise päeva laadimine on pooleli.
+    // Väldime korduvaid nupuvajutusi.
     sammKaib = true;
     nupp.disabled = true;
     veateade.textContent = '';
@@ -161,77 +295,70 @@ async function alustaUutPaeva() {
     uuendaNupud();
 
     try {
-        // Loeme Pythoni viimase kinnitatud mänguseisu.
         let seis = window.kauplemine?.seis;
 
         if (!seis) {
             throw new Error('Mänguseis puudub.');
         }
 
-        // Kui Python on veel vana päeva viimase hinna juures,
-        // küsime serverilt järgmise sobiva päeva.
-        //
-        // Kui uue päeva graafik varem laadida ei õnnestunud,
-        // siis server on juba järgmises päevas ja me ei liigu uuesti edasi.
+        // Pärast edukat päevavahetust, kuid ebaõnnestunud
+        // graafikulaadimist, ei tohi järgmine katse
+        // serverit veel ühte uude päeva viia.
         if (
-            seis.date === graafikuPaev &&
-            seis.index === hinnad.length - 1
+            seis.day_finished ||
+            seis.date === graafikuPaev
         ) {
-            seis = await window.kauplemine.jargmine();
+            seis = await window.kauplemine.uusPaev();
         }
 
-        // Salvestame serveri kinnitatud mänguseisu.
-        serveriSeis = seis;
-
-        // Muudame kuupäevavälja uuele kuupäevale.
+        // Salvestame serveri kinnitatud uue päeva.
+        synkroniseeriKell(seis);
         kuupaev.value = seis.date;
 
-        // Laeme uue päeva hinnad ja graafiku.
-        // sailitaMang: true tähendab, et raha ja akut ei lähtestata.
+        // Laeme uue päeva graafiku ilma mängu lähtestamata.
         const korras = await laadiGraafik({
             sailitaMang: true
         });
 
         if (!korras) {
-            throw new Error(
-                'Uue päeva graafikut ei saanud laadida.'
-            );
+            throw new Error('Uue päeva hindu ei saanud laadida.');
         }
 
-        // Alustame serveri kinnitatud hinnapunktist.
+        // Taastame serveri kinnitatud uue päeva alguspunkti.
         hetkeIndeks = seis.index;
 
-        // Kuvame ainult juba läbitud hinnad.
         chart.data.datasets[0].data = hinnad.map(
             (h, i) => i <= hetkeIndeks ? h.price : null
         );
 
         kuvaSeis();
 
-        // Uue päeva laadimine õnnestus.
-        paevLabi = false;
+        // Python käivitab selle mängija mängukella.
+        seis = await window.kauplemine.jatka();
 
-        // Sulgeme päeva lõpu teavituse.
+        synkroniseeriKell(seis);
+
+        // Päevavahetus õnnestus.
+        paevLabi = false;
         paevaLopuDialog?.close();
 
-        // Käivitame mängu senise kiirusega.
+        salvestaMangijaSoov(true);
+
+        // Graafik liigub edaspidi ilma iga hinnapunkti POST-päringuta.
         taimer = setInterval(
             lisaPunkt,
             TAVALINE_SAMM_MS / kiirus
         );
 
-        // Näitame mängijale uue päeva alguse teadet.
         window.kauplemine.teata(
             `Algas uus mängupäev: ${seis.date}`
         );
 
     } catch (viga) {
-        // Vea korral jääb mäng peatunuks.
-        // Mängija saab proovida uut päeva uuesti alustada.
+        // Kui laadimine ebaõnnestub, jääb teavitus avatuks.
         veateade.textContent = `Viga: ${viga.message}`;
 
     } finally {
-        // Vabastame ajutised lukustused.
         sammKaib = false;
         nupp.disabled = false;
 
@@ -244,10 +371,10 @@ async function alustaUutPaeva() {
 function uuendaNupud() {
     const kaib = taimer !== null;
 
-    // Lukustame nupud mängu käivitamisel ja laadimisel,
-    // mitte iga hinnauuenduse ajal.
+    // Lukustame nupud ainult mängu käivitamisel
+    // ja graafiku laadimisel, mitte iga hinnamuutuse ajal.
     //
-    // Nii ei vilgu Play ja Reset iga hinnapäringuga.
+    // Nii ei vilgu Play ja Reset iga hinnasammu ajal.
     const lukus = kaivitamine || laadimine;
 
     playPauseNupp.disabled = lukus;
@@ -318,93 +445,59 @@ function kuvaSeis() {
     // Määrame hinna tõusu, languse või stabiilsuse.
     if (vahe() === 0) {
         teade.dataset.trend = 'Stabiilne';
+
     } else if (vahe() < 0) {
         teade.dataset.trend = 'Langeb';
+
     } else if (vahe() > 0) {
         teade.dataset.trend = 'Tõuseb';
     }
 
     teadeUhikud.textContent = " €/MWh";
+
+    // Raha, aku ja kasum uuenevad kohapeal vastavalt nähtavale hinnale.
+    // See ei saada serverile päringut; tehinguhinna määrab Python.
+    if (window.kauplemine?.seis?.date === graafikuPaev) {
+        window.kauplemine.kuvaHind?.(praegune, hetkeIndeks);
+    }
 }
 
 
-// Liigume järgmise hinnapunkti juurde Pythoni kinnitusega.
-async function lisaPunkt() {
-    // Väldime samaaegseid hinnauuendusi ja tehingupäringuid.
-    if (
-        !chart ||
-        !window.kauplemine?.aktiivne ||
-        window.kauplemine.toimetab ||
-        sammKaib ||
-        laadimine
-    ) return;
+// Kinnitame serveriga päeva lõpu ühe GET-päringuga.
+// Nii ei lõpeta brauser päeva enne, kui see on ka serveris lõppenud.
+async function kinnitaPaevaLopp() {
+    if (sammKaib || paevLabi) return;
 
-    // Kui viimane hinnapunkt on juba kuvatud,
-    // siis lõppes nüüd ka selle hinnaperioodi aeg.
-    //
-    // Peatame mängu ja ootame kasutajalt järgmise päeva kinnitust.
-    // Pythonile uut hinnapäringut veel ei saadeta.
-    if (hetkeIndeks >= hinnad.length - 1) {
-        peataTaimer();
-
-        // Märgime mängu päeva lõppu jõudnuks.
-        paevLabi = true;
-
-        // Näitame päeva lõpu teavitust.
-        avaPaevaLopuTeavitus();
-
-        uuendaNupud();
-        return;
-    }
-
+    peataTaimer();
     sammKaib = true;
-    uuendaNupud();
 
     try {
-        // Python otsustab, milline hinnapunkt on järgmine.
-        const uusSeis = await window.kauplemine.jargmine();
+        const seis = await window.kauplemine.taasta();
 
-        serveriSeis = uusSeis;
+        if (!seis) {
+            throw new Error('Mänguseis puudub.');
+        }
 
-        // Uue päeva tuvastamine jääb alles ka varuvariandina.
-        // Päevavahetuse teavitus peaks tavaliselt jõudma enne seda.
-        if (
-            uusSeis.date !== graafikuPaev ||
-            uusSeis.index < hetkeIndeks
-        ) {
-            kuupaev.value = uusSeis.date;
+        synkroniseeriKell(seis);
 
-            const korras = await laadiGraafik({
-                sailitaMang: true
-            });
+        if (seis.day_finished) {
+            // Server kinnitas päeva lõpu.
+            paevLabi = true;
+            salvestaMangijaSoov(false);
+            avaPaevaLopuTeavitus();
 
-            if (!korras) {
-                throw new Error(
-                    'Järgmise päeva hindu ei saanud laadida.'
-                );
-            }
-
-            // Uus päev algab serveri määratud hinnapunktist.
-            hetkeIndeks = uusSeis.index;
-
-            kuvaSeis();
-
-            window.kauplemine.teata(
-                `Uus mängupäev: ${uusSeis.date}`
+        } else if (seis.running) {
+            // Server ei ole veel päeva lõppu jõudnud.
+            // Jätkame serveri kinnitatud mängukella järgi.
+            taimer = setInterval(
+                lisaPunkt,
+                TAVALINE_SAMM_MS / kiirus
             );
-
-        } else {
-            // Sama päeva korral lisame järgmise hinnapunkti.
-            hetkeIndeks = uusSeis.index;
-            kuvaSeis();
         }
 
     } catch (viga) {
-        // Serverivea korral peatame mängu.
-        peataTaimer();
-
         window.kauplemine?.teata(
-            `Viga: ${viga.message}`
+            `Viga päeva lõpetamisel: ${viga.message}`
         );
 
     } finally {
@@ -414,21 +507,61 @@ async function lisaPunkt() {
 }
 
 
-// Käivitame graafiku ja vajadusel alustame Pythonis mängu.
-async function alustaGraafik() {
-    // Kui eelmine päev lõppes, näitame uue päeva valikut.
-    // Me ei käivita vana päeva taimerit uuesti.
-    if (paevLabi) {
+// Joongraafik liigub brauseris.
+// Serveripäringut iga hinnapunkti kohta enam ei tehta.
+function lisaPunkt() {
+    if (
+        !chart ||
+        !kellaKinnitus ||
+        !kellaKinnitus.kaib ||
+        paevLabi ||
+        laadimine ||
+        sammKaib
+    ) return;
+
+    // Arvutame kehtiva hinnaperioodi serveri mängukella põhjal.
+    const sekundid = praeguneManguaeg();
+
+    const uusIndeks = Math.min(
+        hinnad.length - 1,
+        Math.floor(sekundid / PERIOODI_PIKKUS_SEK)
+    );
+
+    if (uusIndeks > hetkeIndeks) {
+        // Kui brauser jäi veidi hiljaks, kuvame ka vahelejäänud punktid.
+        for (let i = hetkeIndeks + 1; i <= uusIndeks; i++) {
+            chart.data.datasets[0].data[i] = hinnad[i].price;
+        }
+
+        hetkeIndeks = uusIndeks;
+
+        // Uuendame graafiku ja statistika.
+        kuvaSeis();
+    }
+
+    if (sekundid >= PAEVA_PIKKUS_SEK) {
+        // Viimase hinnaperioodi aeg sai läbi.
+        // Ootame enne teavituse avamist serveri kinnitust.
+        void kinnitaPaevaLopp();
+    }
+}
+
+
+// Käivitame mängu või taastame selle serveris olevast mänguseansist.
+async function alustaGraafik({ automaatne = false } = {}) {
+    // Play avab lõppenud päeval uue päeva teavituse.
+    if (paevLabi && !automaatne) {
         avaPaevaLopuTeavitus();
         return;
     }
 
-    // Väldime kattuvaid käivitamisi.
+    // Väldime samaaegseid mängu käivitamisi.
     if (
         taimer !== null ||
         kaivitamine ||
         sammKaib ||
-        laadimine
+        laadimine ||
+        window.kauplemine?.toimetab
     ) return;
 
     kaivitamine = true;
@@ -436,68 +569,64 @@ async function alustaGraafik() {
 
     try {
         if (!window.kauplemine) {
-            throw new Error(
-                'Kauplemise JavaScript puudub.'
-            );
+            throw new Error('Kauplemise JavaScript puudub.');
         }
 
         let seis;
+        let uusMang = false;
 
-        
-        if (!window.kauplemine.aktiivne) {
-
-            // Lehe avamisel kontrollime kõigepealt,
-            // kas Pythonis on eelmisest külastusest mäng olemas.
+        if (automaatne) {
+            // Lehe avamisel või brauseri vahemälust taastamisel
+            // küsime mänguseisu Pythonilt.
+            //
+            // Seda ka siis, kui vana JS-i olek on mälus alles.
             seis = await window.kauplemine.taasta();
 
-            // Kui olemasolevat mängu ei ole, alustame uut.
             if (!seis) {
-
-                // Käsitsi laetud graafiku puhul kasutame valitud päeva.
-                // Muul juhul valib Python juhusliku sobiva päeva.
-                seis = await window.kauplemine.alusta(
-                    chart ? kuupaev.value : undefined
-                );
-
-                window.kauplemine.teata('Alustati uut mängu.');
-
-            } else {
-                // Olemasolev mäng leiti.
-                // Raha, aku, kuupäev ja hinnapunkt jäävad samaks.
-                window.kauplemine.teata('Eelmine mäng taastatud.');
+                // Kui mängu ei leitud, alustame uut mängu.
+                seis = await window.kauplemine.alusta();
+                uusMang = true;
             }
+
+        } else if (!window.kauplemine.aktiivne) {
+            // Kui kasutaja laadis käsitsi kindla kuupäeva,
+            // alustame sellel päeval uut mängu.
+            seis = await window.kauplemine.alusta(
+                chart ? kuupaev.value : undefined
+            );
+
+            uusMang = true;
 
         } else {
-            // Kui mäng on juba sellel lehel aktiivne,
-            // jätkame pausilt olemasoleva mänguseisuga.
+            // Play-nupp jätkab olemasolevat mängu pausilt.
             seis = window.kauplemine.seis || serveriSeis;
-
-            if (!seis) {
-                throw new Error('Mänguseis puudub.');
-            }
         }
 
+        if (!seis) {
+            throw new Error('Mänguseis puudub.');
+        }
 
-        serveriSeis = seis;
+        synkroniseeriKell(seis);
 
-        // Kontrollime, kas graafik ja Python kasutavad sama päeva.
+        // Vajadusel laadime õige päeva hinnad.
+        // Mängija raha ja akut see ei lähtesta.
         if (!chart || graafikuPaev !== seis.date) {
             kuupaev.value = seis.date;
 
-            // Laeme graafiku, aga säilitame kauplemise mänguseisu.
             const korras = await laadiGraafik({
                 sailitaMang: true
             });
 
             if (!korras) {
-                throw new Error(
-                    'Graafikut ei saanud laadida.'
-                );
+                throw new Error('Graafikut ei saanud laadida.');
             }
         }
 
-        // Taastame juba nähtud hinnapunktid.
-        hetkeIndeks = seis.index;
+        // Taastame kõik serveri kinnitatud punktini nähtud hinnad.
+        hetkeIndeks = Math.min(
+            hinnad.length - 1,
+            seis.index
+        );
 
         chart.data.datasets[0].data = hinnad.map(
             (h, i) => i <= hetkeIndeks ? h.price : null
@@ -505,30 +634,58 @@ async function alustaGraafik() {
 
         kuvaSeis();
 
-        // Kui taastatud mäng jõudis juba viimase hinnani,
-        // ei käivita me automaatselt uut päeva.
-        if (hetkeIndeks >= hinnad.length - 1) {
+        // Päeva lõppedes ei alusta me automaatselt järgmist päeva.
+        if (seis.day_finished) {
             paevLabi = true;
+            salvestaMangijaSoov(false);
             avaPaevaLopuTeavitus();
             return;
         }
 
-        // Käivitame taimeri praegusel kiirusel.
-        const intervall = TAVALINE_SAMM_MS / kiirus;
+        paevLabi = false;
 
-        taimer = setInterval(lisaPunkt, intervall);
+        // Kui mängija jättis mängu ise pausile,
+        // taastame mängu samamoodi pausil.
+        //
+        // Uus mäng käivitub ka siis, kui salvestatud
+        // pausimärge pärineb eelmisest mängust.
+        if (
+            automaatne &&
+            !uusMang &&
+            eelmineMangijaSoov() === '0'
+        ) {
+            if (seis.running) {
+                seis = await window.kauplemine.peata();
+
+                synkroniseeriKell(seis);
+                window.synkroniseeriManguseis(seis);
+            }
+
+            window.kauplemine.teata(
+                'Eelmine mäng taastatud. Pausil.'
+            );
+            return;
+        }
+
+        // Käivitame serveri mängukella ühe POST-päringuga.
+        seis = await window.kauplemine.jatka();
+
+        synkroniseeriKell(seis);
+        salvestaMangijaSoov(true);
+
+        // Kohalik taimer ainult joonistab hinnapunkte.
+        // Iga punkti kohta ei tehta serveripäringut.
+        taimer = setInterval(
+            lisaPunkt,
+            TAVALINE_SAMM_MS / kiirus
+        );
 
         window.kauplemine.teata('Mäng käib.');
 
     } catch (viga) {
-        // Kuvame veateate ja jätame mängu seisma.
-        if (window.kauplemine) {
-            window.kauplemine.teata(
-                `Viga: ${viga.message}`
-            );
-        } else {
-            teade.textContent = `Viga: ${viga.message}`;
-        }
+        window.kauplemine?.teata(
+            `Viga: ${viga.message}`
+        );
 
     } finally {
         kaivitamine = false;
@@ -537,16 +694,51 @@ async function alustaGraafik() {
 }
 
 
-// Peatame graafiku liikumise.
-function peataGraafik() {
-    if (taimer === null) {
-        return;
-    }
+// Peatame nii graafiku kui ka serveris oleva mängukella.
+async function peataGraafik() {
+    if (
+        taimer === null ||
+        kaivitamine ||
+        sammKaib ||
+        window.kauplemine?.toimetab
+    ) return;
 
+    // Peatame kõigepealt brauseri taimeri.
     peataTaimer();
 
-    // Tulevikus võib näidata eraldi teadet "Pausil".
+    kaivitamine = true;
     uuendaNupud();
+
+    try {
+        // Server fikseerib praeguse hinna.
+        // Pausil see enam ei muutu.
+        const seis = await window.kauplemine.peata();
+
+        if (seis.active) {
+            window.synkroniseeriManguseis(seis);
+        }
+
+        if (seis.day_finished) {
+            // Kui päev lõppes peatamise ajal, näitame teavitust.
+            paevLabi = true;
+            salvestaMangijaSoov(false);
+            avaPaevaLopuTeavitus();
+
+        } else {
+            // Tavaline paus.
+            salvestaMangijaSoov(false);
+            window.kauplemine.teata('Mäng on pausil.');
+        }
+
+    } catch (viga) {
+        window.kauplemine?.teata(
+            `Viga: ${viga.message}`
+        );
+
+    } finally {
+        kaivitamine = false;
+        uuendaNupud();
+    }
 }
 
 
@@ -574,7 +766,7 @@ function lulitaGraafik() {
 }
 
 
-// Lähtestame graafiku ja Pythoni mänguseisu.
+// Reset alustab sama päeva uuesti ainult selle mängija mänguseansis.
 async function nulliGraafik() {
     if (
         !chart ||
@@ -584,22 +776,20 @@ async function nulliGraafik() {
         window.kauplemine?.toimetab
     ) return;
 
-    // Peatame mängu enne lähtestamist.
     peataTaimer();
 
     kaivitamine = true;
     uuendaNupud();
 
     try {
-        // Reset alustab sama päeva uuesti.
-        // Raha taastub algsummale ja aku tühjeneb.
-        if (window.kauplemine?.aktiivne) {
-            serveriSeis = await window.kauplemine.alusta(
-                kuupaev.value
-            );
-        }
+        // Python nullib raha, aku ja mängukella.
+        const seis = await window.kauplemine.alusta(
+            kuupaev.value
+        );
 
-        // Tühjendame graafiku ja kuvame esimese hinnapunkti.
+        synkroniseeriKell(seis);
+
+        // Taastame graafiku algseisu.
         hetkeIndeks = 0;
 
         chart.data.datasets[0].data =
@@ -607,15 +797,15 @@ async function nulliGraafik() {
 
         kuvaSeis();
 
-        // Reset tühistab eelmise päeva lõpu oleku.
+        // Reset tühistab päeva lõpu oleku.
         paevLabi = false;
+        salvestaMangijaSoov(false);
 
-        // Sulgeme teavituse, kui see oli avatud.
         if (paevaLopuDialog?.open) {
             paevaLopuDialog.close();
         }
 
-        window.kauplemine?.teata(
+        window.kauplemine.teata(
             'Mäng lähtestatud. Vajuta Play.'
         );
 
@@ -653,9 +843,14 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
         }
 
         peataTaimer();
+        salvestaMangijaSoov(false);
 
+        // Käsitsi valitud päeva käivitamisel loob Python uue mängu.
         window.kauplemine?.nulli();
         serveriSeis = null;
+        kellaKinnitus = null;
+        // Käsitsi uue päeva valimisel eemaldame vana mängu loenduri.
+        paevadeLoendur.textContent = 'Päev –';
     }
 
     laadimine = true;
@@ -873,7 +1068,7 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
         return true;
 
     } catch (viga) {
-        // Kui tegemist on vana päringuga, siis ignoreerime seda.
+        // Kui tegemist on vana päringuga, ignoreerime seda.
         if (praeguneParing !== paringuNumber) {
             return false;
         }
@@ -938,7 +1133,43 @@ if (paevaLopuDialog) {
 }
 
 
-// Käivitame mängu pärast teiste skriptide laadimist.
-window.addEventListener(
-    "load", () => alustaGraafik()
-);
+// Lehe avamisel taastame serverist selle mängijaseansi mängu.
+window.addEventListener('load', () => {
+    void alustaGraafik({ automaatne: true });
+});
+
+
+// Lehelt lahkudes fikseerime, kas mäng oli käimas, ja palume serveril
+// see pausile panna. sendBeacon toimib ka lehe sulgemise ajal paremini
+// kui tavaline asünkroonne fetch, kuid kohalejõudmine pole garanteeritud.
+window.addEventListener('pagehide', () => {
+    const oliKaimas = taimer !== null;
+
+    salvestaMangijaSoov(oliKaimas);
+    peataTaimer();
+
+    if (oliKaimas && window.kauplemine?.aktiivne) {
+        navigator.sendBeacon(
+            '/api/demo/pause',
+            new Blob(
+                ['{}'],
+                { type: 'application/json' }
+            )
+        );
+    }
+
+    // Kui leht jääb brauseri tagasiliikumise vahemällu,
+    // ei tohi vana kohalik mängukell edasi liikuda.
+    if (kellaKinnitus) {
+        kellaKinnitus.kaib = false;
+    }
+});
+
+
+// Brauser võib lehe Back-nupuga taastada ilma uut load-sündmust saatmata.
+// Sel juhul küsime uuesti serverilt, kus mäng pooleli jäi.
+window.addEventListener('pageshow', event => {
+    if (event.persisted) {
+        void alustaGraafik({ automaatne: true });
+    }
+});
