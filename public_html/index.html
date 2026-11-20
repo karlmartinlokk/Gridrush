@@ -84,7 +84,7 @@
                                     <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
                                 </button>
                                 <div class="speed-control-group">
-                                    <div id="day-count" aria-live="polite">Päev –</div>
+                                    <div id="day-count" aria-live="polite">Päev -</div>
                                     <div class="speed-buttons" role="group" aria-label="Kiirus">
                                         <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
                                         <button type="button" data-speed="1" aria-pressed="true">1×</button>
@@ -103,18 +103,19 @@
                 </div>
             </div>
             <div class="buy-sell-container">
+                <button type="button" class="battery-sell-button" data-state="discharging" data-text="MÜÜ" aria-pressed="false">MÜÜ</button>
                 <div class="buy-sell-target">
-                    <button type="button" class="target-decrease-button" aria-label="Vähenda">−</button>
-                    <div class="target-amount-wrapper">
-                        <span class="target-amount">0,0</span>
-                        <span class="target-unit">MWh</span>
+                    <span class="target-value">- €</span>
+                    <div class="target-picker">
+                        <button type="button" class="target-decrease-button" aria-label="Vähenda">-</button>
+                        <div class="target-amount-wrapper">
+                            <span class="target-amount">0,0</span>
+                            <span class="target-unit">MWh</span>
+                        </div>
+                        <button type="button" class="target-increase-button" aria-label="Suurenda">+</button>
                     </div>
-                    <button type="button" class="target-increase-button" aria-label="Suurenda">+</button>
                 </div>
-                <div class="battery-buttons">
-                    <button type="button" class="battery-buy-button" data-state="charging" data-text="OSTA" aria-pressed="false">OSTA</button>
-                    <button type="button" class="battery-sell-button" data-state="discharging" data-text="MÜÜ" aria-pressed="false">MÜÜ</button>
-                </div>
+                <button type="button" class="battery-buy-button" data-state="charging" data-text="OSTA" aria-pressed="false">OSTA</button>
             </div>
             <div class="event-container">
                 Event
@@ -191,17 +192,17 @@
         <div class="day-end-stats">
             <div>
                 <span>Rahajääk</span>
-                <strong id="day-end-balance">–</strong>
+                <strong id="day-end-balance">-</strong>
             </div>
 
             <div>
                 <span>Aku</span>
-                <strong id="day-end-energy">–</strong>
+                <strong id="day-end-energy">-</strong>
             </div>
 
             <div>
                 <span>Kasum / kahjum</span>
-                <strong id="day-end-profit">–</strong>
+                <strong id="day-end-profit">-</strong>
             </div>
         </div>
 

@@ -3,6 +3,7 @@
 let manguseis = null;
 let kogus = 1;
 let paringKaib = false;
+let eelvaade = null;
 
 // Leiame kasutajaliidese elemendid.
 const leia = valija => document.querySelector(valija);
@@ -29,6 +30,26 @@ function kuvaKauplemine() {
 
     // Kontrollime, kas ost ja müük on võimalikud.
     const summa = s ? kogus * s.price : 0;
+
+    // Hõljumisel näitame kui palju raha muutuks nupuvajutusel
+    const rahaMuutus =
+        eelvaade === 'buy' ? -summa :
+        eelvaade === 'sell' ? summa : null;
+
+    const vaartusElement = leia('.target-value');
+
+    if (!s) {
+        vaartusElement.textContent = '- €';
+    } else if (rahaMuutus === null) {
+        vaartusElement.textContent = `${euro(summa)} €`;
+    } else {
+        const mark = rahaMuutus > 0 ? '+' : rahaMuutus < 0 ? '-' : '';
+        vaartusElement.textContent =
+            `${mark}${euro(Math.abs(rahaMuutus))} €`;
+    }
+
+    vaartusElement.classList.toggle('gain', Boolean(s) && rahaMuutus > 0);
+    vaartusElement.classList.toggle('loss', Boolean(s) && rahaMuutus < 0);
 
     leia('.battery-buy-button').disabled =
         !s || paringKaib ||
@@ -225,6 +246,29 @@ leia('.battery-buy-button').addEventListener(
 
 leia('.battery-sell-button').addEventListener(
     'click', () => teeTehing('sell')
+);
+
+
+// Hõljumisel kuvame tehingu eelvaate
+const maaraEelvaade = tegevus => {
+    eelvaade = tegevus;
+    kuvaKauplemine();
+};
+
+leia('.battery-buy-button').addEventListener(
+    'mouseenter', () => maaraEelvaade('buy')
+);
+
+leia('.battery-sell-button').addEventListener(
+    'mouseenter', () => maaraEelvaade('sell')
+);
+
+leia('.battery-buy-button').addEventListener(
+    'mouseleave', () => maaraEelvaade(null)
+);
+
+leia('.battery-sell-button').addEventListener(
+    'mouseleave', () => maaraEelvaade(null)
 );
 
 

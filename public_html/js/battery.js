@@ -1,5 +1,5 @@
 const battery = document.querySelector('.battery');
-const buttons = document.querySelectorAll('.battery-buttons button');
+const buttons = document.querySelectorAll('.battery-buy-button, .battery-sell-button');
 
 buttons.forEach(button => {
   button.addEventListener('click', () => {

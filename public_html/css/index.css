@@ -30,17 +30,43 @@ main {
   border-radius: 0.5rem;
   background-color: var(--color-surface-alt);
   display: flex;
-  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
 .buy-sell-target {
   display: flex;
-  height: 5rem;
-  margin-bottom: 0.5rem;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  min-width: 10rem;
   color: var(--color-text-secondary);
-  gap: 1rem;
+}
+
+.target-value {
+  color: var(--color-text-primary);
+  font-size: 2rem;
+  padding-bottom: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.target-value.gain {
+  color: var(--color-gain);
+}
+
+.target-value.loss {
+  color: var(--color-loss);
+}
+
+.target-picker {
+  display: flex;
+  align-items: center;
+  padding-top: 0.75rem;
+  border-top: solid var(--color-border) 3px;
 }
 
 .buy-sell-target button {
@@ -68,39 +94,34 @@ main {
 
 .target-amount {
   color: var(--color-text-secondary);
-  font-size: 2.5rem;
-
+  font-size: 2rem;
+  line-height: 1.1;
 }
 
 .target-unit {
   color: var(--color-text-tertiary);
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
-.battery-buttons {
-  display: flex;
-  width: 100%;
-  gap: 2rem;
-  justify-content: center;
-  font-size: 3rem;
-}
-
-.battery-buttons button {
-  height: 5rem;
-  width: 45%;
+.battery-buy-button,
+.battery-sell-button {
+  flex: 1;
   padding: 0;
   border-radius: 0.5rem;
   font: inherit;
+  font-size: 3rem;
   font-weight: 300;
   cursor: pointer;
   transition: filter 0.2s ease;
 }
 
-.battery-buttons button:hover {
+.battery-buy-button:hover,
+.battery-sell-button:hover {
   filter: brightness(0.9);
 }
 
-.battery-buttons button[aria-pressed="true"] {
+.battery-buy-button[aria-pressed="true"],
+.battery-sell-button[aria-pressed="true"] {
   background-color: rgb(164, 0, 0);
 }
 
@@ -132,7 +153,8 @@ main {
 
 /* Keelatud ostu-müügi nupud on visuaalselt eristatavad. */
 .buy-sell-target button:disabled,
-.battery-buttons button:disabled {
+.battery-buy-button:disabled,
+.battery-sell-button:disabled {
     opacity: 0.45;
     cursor: not-allowed;
 }
