@@ -5,6 +5,7 @@
 let chart = null;
 let hinnad = [];
 let hetkeIndeks = 0;
+let nahtudIndeksid = new Set();
 let taimer = null;
 let paringuNumber = 0;
 
@@ -871,9 +872,25 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
 
     hinnad = [];
     hetkeIndeks = 0;
+    nahtudIndeksid.clear();
     graafikuPaev = "";
 
     uuendaNupud();
+
+    const indeksiVahe = (context, axis) => {
+        if (context.type !== "data" || context.dataIndex !== hetkeIndeks || context.dataIndex === 0) {
+            return undefined;
+        }
+        const voti = `${axis}:${context.dataIndex}`;
+        if (nahtudIndeksid.has(voti)) {
+            return undefined;
+        }
+        nahtudIndeksid.add(voti);
+        const punktid = context.chart.getDatasetMeta(context.datasetIndex).data;
+        const eelmine = punktid[context.dataIndex - 1];
+        if (axis === 'x') return eelmine.getProps(['x']).x;
+        if (axis === 'y') return eelmine.getProps(['y']).y;
+    }
 
     try {
         // Küsime valitud kuupäeva hinnad Python backendilt.
@@ -906,6 +923,7 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
 
         hinnad = andmed.prices;
         graafikuPaev = andmed.date;
+        nahtudIndeksid.clear();
 
         // Loome joongraafiku olemasoleva kujundusega.
         chart = new Chart(
@@ -950,52 +968,14 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
                             duration: 300,
 
                             // Uus punkt liigub välja eelmise asukohast.
-                            from: context => {
-                                if (
-                                    context.type !== "data" ||
-                                    context.dataIndex !== hetkeIndeks
-                                ) {
-                                    return undefined;
-                                }
-
-                                if (context.dataIndex === 0) {
-                                    return undefined;
-                                }
-
-                                const punktid = context.chart
-                                    .getDatasetMeta(context.datasetIndex).data;
-
-                                const eelmine =
-                                    punktid[context.dataIndex - 1];
-
-                                return eelmine.getProps(["x"]).x;
-                            }
+                            from: context => indeksiVahe(context, 'x')
                         },
 
                         y: {
                             duration: 300,
 
                             // Uus punkt alustab eelmise punkti kõrguselt.
-                            from: context => {
-                                if (
-                                    context.type !== "data" ||
-                                    context.dataIndex !== hetkeIndeks
-                                ) {
-                                    return undefined;
-                                }
-
-                                if (context.dataIndex === 0) {
-                                    return undefined;
-                                }
-
-                                const punktid = context.chart
-                                    .getDatasetMeta(context.datasetIndex).data;
-
-                                const eelmine =
-                                    punktid[context.dataIndex - 1];
-
-                                return eelmine.getProps(["y"]).y;
-                            }
+                            from: context => indeksiVahe(context, 'y')
                         },
 
                         radius: {
