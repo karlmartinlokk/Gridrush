@@ -781,6 +781,7 @@ async function nulliGraafik() {
 
     kaivitamine = true;
     uuendaNupud();
+    nahtudIndeksid.clear()
 
     try {
         // Python nullib raha, aku ja mängukella.
