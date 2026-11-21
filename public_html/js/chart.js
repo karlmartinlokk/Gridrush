@@ -14,6 +14,9 @@ let graafikuPaev = "";
 let serveriSeis = null;
 let laadimine = false;
 
+// Korraga küsime serverilt ainult ühe hindade uuenduse.
+let hindadeParing = null;
+
 // Päeva lõpus ootame mängija kinnitust enne järgmise päeva alustamist.
 let paevLabi = false;
 
@@ -112,12 +115,17 @@ window.synkroniseeriManguseis = seis => {
 
     const uusIndeks = Math.min(hinnad.length - 1, seis.index);
 
-    // Täidame ka vahepeal nähtavaks muutunud hinnapunktid.
-    for (let i = hetkeIndeks + 1; i <= uusIndeks; i++) {
-        chart.data.datasets[0].data[i] = hinnad[i].price;
+    // Kui tehing toimus uuel hinnaperioodil, küsime hinna serverilt.
+    // Tulevase perioodi hind ei ole brauseri mälus ette olemas.
+    if (uusIndeks > hetkeIndeks ||
+        !Number.isFinite(hinnad[uusIndeks]?.price)) {
+        void uuendaNahtavaidHindu().catch(viga => {
+            window.kauplemine?.teata(`Viga: ${viga.message}`);
+        });
+        return;
     }
 
-    hetkeIndeks = uusIndeks;
+    // Tehingu hetkel juba nähtav hind on teada.
     kuvaSeis();
 };
 
@@ -325,13 +333,7 @@ async function alustaUutPaeva() {
             throw new Error('Uue päeva hindu ei saanud laadida.');
         }
 
-        // Taastame serveri kinnitatud uue päeva alguspunkti.
-        hetkeIndeks = seis.index;
-
-        chart.data.datasets[0].data = hinnad.map(
-            (h, i) => i <= hetkeIndeks ? h.price : null
-        );
-
+        // laadiGraafik() laadis juba serveris avaldatud hinnad.
         kuvaSeis();
 
         // Python käivitab selle mängija mängukella.
@@ -402,6 +404,9 @@ function kuvaSeis() {
     }
 
     const praegune = hinnad[hetkeIndeks];
+
+    // Tulevast hinda ei tohi graafikul ega statistikas kuvada.
+    if (!Number.isFinite(praegune?.price)) return;
 
     // Leiame praeguse hinna muutuse võrreldes eelmisega.
     const vahe = () => {
@@ -482,6 +487,14 @@ async function kinnitaPaevaLopp() {
         synkroniseeriKell(seis);
 
         if (seis.day_finished) {
+            // Enne teavitust küsime ka viimase avanenud hinnapunkti.
+            // Kui võrk katkeb, ei takista see päeva lõpetamist.
+            try {
+                await uuendaNahtavaidHindu();
+            } catch (viga) {
+                window.kauplemine?.teata(`Hinnapäringu viga: ${viga.message}`);
+            }
+
             // Server kinnitas päeva lõpu.
             paevLabi = true;
             salvestaMangijaSoov(false);
@@ -508,8 +521,90 @@ async function kinnitaPaevaLopp() {
 }
 
 
-// Joongraafik liigub brauseris.
-// Serveripäringut iga hinnapunkti kohta enam ei tehta.
+// Küsime serverilt ainult juba avanenud elektrihinnad.
+// Server ei väljasta tulevaste hinnaperioodide hindu.
+async function kysiNahtavadHinnad() {
+    const vastus = await fetch('/api/demo/prices', {
+        cache: 'no-store'
+    });
+
+    const andmed = await vastus.json();
+
+    if (!vastus.ok) {
+        throw new Error(andmed.error || 'Hindu ei saanud laadida.');
+    }
+
+    // Server saadab 96 ajatemplit, kuid tulevased hinnad on null.
+    if (
+        typeof andmed.date !== 'string' ||
+        andmed.total !== 96 ||
+        !Array.isArray(andmed.prices) ||
+        andmed.prices.length !== 96 ||
+        !Number.isInteger(andmed.index) ||
+        andmed.index < 0 ||
+        andmed.index >= 96 ||
+        andmed.prices.some((punkt, indeks) =>
+            !Number.isFinite(punkt?.timestamp) ||
+            (indeks <= andmed.index
+                ? !Number.isFinite(punkt.price)
+                : punkt.price !== null)
+        )
+    ) {
+        throw new Error('Server tagastas vigased hinnaandmed.');
+    }
+
+    return andmed;
+}
+
+
+// Värskendame graafikut ainult serveri poolt avaldatud hindadega.
+async function uuendaNahtavaidHindu() {
+    if (!chart || !graafikuPaev || laadimine) return;
+
+    // Kui sama päring juba käib, ootame selle tulemust.
+    if (hindadeParing) {
+        await hindadeParing;
+        return;
+    }
+
+    const oodatudPaev = graafikuPaev;
+    const oodatudVersioon = paringuNumber;
+
+    const paring = (async () => {
+        const andmed = await kysiNahtavadHinnad();
+
+        // Vana päringu vastus ei tohi muuta uut mängu või päeva.
+        if (
+            !chart ||
+            oodatudVersioon !== paringuNumber ||
+            oodatudPaev !== graafikuPaev ||
+            andmed.date !== graafikuPaev
+        ) return;
+
+        hinnad = andmed.prices;
+        hetkeIndeks = andmed.index;
+
+        chart.data.datasets[0].data = hinnad.map((punkt, indeks) =>
+            indeks <= hetkeIndeks ? punkt.price : null
+        );
+
+        kuvaSeis();
+    })();
+
+    hindadeParing = paring;
+
+    try {
+        await paring;
+    } finally {
+        if (hindadeParing === paring) {
+            hindadeParing = null;
+        }
+    }
+}
+
+
+// Joongraafik liigub brauseris serveri kinnitatud mängukella järgi.
+// Uue hinna jaoks teeme GET-päringu, mitte POST-päringut.
 function lisaPunkt() {
     if (
         !chart ||
@@ -520,7 +615,6 @@ function lisaPunkt() {
         sammKaib
     ) return;
 
-    // Arvutame kehtiva hinnaperioodi serveri mängukella põhjal.
     const sekundid = praeguneManguaeg();
 
     const uusIndeks = Math.min(
@@ -528,21 +622,15 @@ function lisaPunkt() {
         Math.floor(sekundid / PERIOODI_PIKKUS_SEK)
     );
 
-    if (uusIndeks > hetkeIndeks) {
-        // Kui brauser jäi veidi hiljaks, kuvame ka vahelejäänud punktid.
-        for (let i = hetkeIndeks + 1; i <= uusIndeks; i++) {
-            chart.data.datasets[0].data[i] = hinnad[i].price;
-        }
-
-        hetkeIndeks = uusIndeks;
-
-        // Uuendame graafiku ja statistika.
-        kuvaSeis();
+    if (uusIndeks > hetkeIndeks && !hindadeParing) {
+        // Server otsustab, kas vastav hinnaperiood on saabunud.
+        void uuendaNahtavaidHindu().catch(viga => {
+            window.kauplemine?.teata(`Viga: ${viga.message}`);
+        });
     }
 
     if (sekundid >= PAEVA_PIKKUS_SEK) {
-        // Viimase hinnaperioodi aeg sai läbi.
-        // Ootame enne teavituse avamist serveri kinnitust.
+        // Päeva lõpu kinnitab samuti server.
         void kinnitaPaevaLopp();
     }
 }
@@ -621,17 +709,11 @@ async function alustaGraafik({ automaatne = false } = {}) {
             if (!korras) {
                 throw new Error('Graafikut ei saanud laadida.');
             }
+        } else {
+            // Taastamisel küsime ka juba avanenud hinnad serverilt.
+            // Graafik ei saa kasutada mälus olevaid tulevasi hindu.
+            await uuendaNahtavaidHindu();
         }
-
-        // Taastame kõik serveri kinnitatud punktini nähtud hinnad.
-        hetkeIndeks = Math.min(
-            hinnad.length - 1,
-            seis.index
-        );
-
-        chart.data.datasets[0].data = hinnad.map(
-            (h, i) => i <= hetkeIndeks ? h.price : null
-        );
 
         kuvaSeis();
 
@@ -791,11 +873,13 @@ async function nulliGraafik() {
 
         synkroniseeriKell(seis);
 
-        // Taastame graafiku algseisu.
-        hetkeIndeks = 0;
+        // Laeme reset'i järel uuesti ainult esimese avatud hinna.
+        // Eelmise mängu hinnad ei jää graafiku andmetesse alles.
+        const korras = await laadiGraafik({ sailitaMang: true });
 
-        chart.data.datasets[0].data =
-            Array(hinnad.length).fill(null);
+        if (!korras) {
+            throw new Error('Alguse hindu ei saanud laadida.');
+        }
 
         kuvaSeis();
 
@@ -851,6 +935,7 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
         window.kauplemine?.nulli();
         serveriSeis = null;
         kellaKinnitus = null;
+
         // Käsitsi uue päeva valimisel eemaldame vana mängu loenduri.
         paevadeLoendur.textContent = 'Päev –';
     }
@@ -894,35 +979,27 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
     }
 
     try {
-        // Küsime valitud kuupäeva hinnad Python backendilt.
-        const url =
-            `cgi-bin/get_prices.py?date=${encodeURIComponent(kuupaev.value)}`;
+        if (!sailitaMang) {
+            // Käsitsi kuupäeva laadimine alustab valitud päeval
+            // uue mängu, mis jääb kuni Play vajutamiseni pausile.
+            const seis = await window.kauplemine.alusta(kuupaev.value);
+            synkroniseeriKell(seis);
+        }
 
-        const vastus = await fetch(url);
-        const andmed = await vastus.json();
+        // Anti-cheat: küsime ainult serveris juba avanenud hindu.
+        const andmed = await kysiNahtavadHinnad();
 
         // Ignoreerime vananenud päringu vastust.
         if (praeguneParing !== paringuNumber) {
             return false;
         }
 
-        if (!vastus.ok) {
-            throw new Error(
-                andmed.error || "Päring ebaõnnestus."
-            );
-        }
-
-        // Mängus kasutame 96 hinnapunktiga päevi.
-        if (
-            !Array.isArray(andmed.prices) ||
-            andmed.prices.length !== 96
-        ) {
-            throw new Error(
-                "Selle päeva 96 hinnapunkti pole saadaval."
-            );
+        if (andmed.date !== kuupaev.value) {
+            throw new Error('Serveri mängupäev ei vasta valitud kuupäevale.');
         }
 
         hinnad = andmed.prices;
+        hetkeIndeks = andmed.index;
         graafikuPaev = andmed.date;
         nahtudIndeksid.clear();
 
@@ -1042,7 +1119,11 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
             }
         );
 
-        // Kuvame uue päeva esimese hinnapunkti.
+        // Kuvame serveris juba avanenud hinnapunktid.
+        chart.data.datasets[0].data = hinnad.map((punkt, indeks) =>
+            indeks <= hetkeIndeks ? punkt.price : null
+        );
+
         kuvaSeis();
 
         // Teavitame teisi funktsioone edukast laadimisest.
