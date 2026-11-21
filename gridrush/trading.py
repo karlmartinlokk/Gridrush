@@ -311,9 +311,9 @@ class Kauplemismang:
         if tegevus not in ("buy", "sell"):
             raise ManguViga("Tundmatu tehing.")
 
-        if type(kogus) is not int or kogus <= 0:
+        if type(kogus) not in (float, int) or kogus <= 0:
             raise ManguViga(
-                "Kogus peab olema positiivne täisarv."
+                "Kogus peab olema positiivne arv."
             )
 
         with self.lukk:

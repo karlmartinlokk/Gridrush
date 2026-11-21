@@ -3,6 +3,7 @@
 let manguseis = null;
 let kogus = 1;
 let paringKaib = false;
+let eelvaade = null;
 
 // Leiame kasutajaliidese elemendid.
 const leia = valija => document.querySelector(valija);
@@ -10,6 +11,7 @@ const euro = arv => arv.toLocaleString('et-EE', {
     minimumFractionDigits: 2, maximumFractionDigits: 2
 });
 const teata = tekst => leia('.event-container').textContent = tekst;
+const sammuNupud = document.querySelectorAll('.target-step-button');
 
 
 // Kuvame serverist saadud mänguseisu.
@@ -21,14 +23,34 @@ function kuvaKauplemine() {
         kogus.toFixed(1).replace('.', ',');
 
     // Piirame koguse valimist aku mahutavusega.
-    leia('.target-decrease-button').disabled =
-        !s || paringKaib || kogus <= 1;
-
-    leia('.target-increase-button').disabled =
-        !s || paringKaib || kogus >= s.capacity;
+    sammuNupud.forEach(nupp => {
+        const samm = Number(nupp.dataset.step);
+        nupp.disabled = !s || paringKaib ||
+            (samm < 0 ? kogus <= 0.5 : kogus >= s.capacity);
+    });
 
     // Kontrollime, kas ost ja müük on võimalikud.
     const summa = s ? kogus * s.price : 0;
+
+    // Hõljumisel näitame kui palju raha muutuks nupuvajutusel
+    const rahaMuutus =
+        eelvaade === 'buy' ? -summa :
+        eelvaade === 'sell' ? summa : null;
+
+    const vaartusElement = leia('.target-value');
+
+    if (!s) {
+        vaartusElement.textContent = '- €';
+    } else if (rahaMuutus === null) {
+        vaartusElement.textContent = `${euro(summa)} €`;
+    } else {
+        const mark = rahaMuutus > 0 ? '+' : rahaMuutus < 0 ? '-' : '';
+        vaartusElement.textContent =
+            `${mark}${euro(Math.abs(rahaMuutus))} €`;
+    }
+
+    vaartusElement.classList.toggle('gain', Boolean(s) && rahaMuutus > 0);
+    vaartusElement.classList.toggle('loss', Boolean(s) && rahaMuutus < 0);
 
     leia('.battery-buy-button').disabled =
         !s || paringKaib ||
@@ -200,21 +222,19 @@ async function teeTehing(tegevus) {
 }
 
 
-// Pluss suurendab valitud elektrikogust.
-leia('.target-increase-button').addEventListener('click', () => {
-    if (manguseis && !paringKaib)
-        kogus = Math.min(kogus + 1, manguseis.capacity);
+// Suured nupud muudavad kogust 10 kaupa, väikesed 0,5 kaupa.
+sammuNupud.forEach(nupp => {
+    nupp.addEventListener('click', () => {
+        if (manguseis && !paringKaib) {
+            const samm = Number(nupp.dataset.step);
+            kogus = Math.min(
+                Math.max(0.5, kogus + samm),
+                manguseis.capacity
+            );
+        }
 
-    kuvaKauplemine();
-});
-
-
-// Miinus vähendab valitud elektrikogust.
-leia('.target-decrease-button').addEventListener('click', () => {
-    if (!paringKaib)
-        kogus = Math.max(1, kogus - 1);
-
-    kuvaKauplemine();
+        kuvaKauplemine();
+    });
 });
 
 
@@ -225,6 +245,29 @@ leia('.battery-buy-button').addEventListener(
 
 leia('.battery-sell-button').addEventListener(
     'click', () => teeTehing('sell')
+);
+
+
+// Hõljumisel kuvame tehingu eelvaate
+const maaraEelvaade = tegevus => {
+    eelvaade = tegevus;
+    kuvaKauplemine();
+};
+
+leia('.battery-buy-button').addEventListener(
+    'mouseenter', () => maaraEelvaade('buy')
+);
+
+leia('.battery-sell-button').addEventListener(
+    'mouseenter', () => maaraEelvaade('sell')
+);
+
+leia('.battery-buy-button').addEventListener(
+    'mouseleave', () => maaraEelvaade(null)
+);
+
+leia('.battery-sell-button').addEventListener(
+    'mouseleave', () => maaraEelvaade(null)
 );
 
 

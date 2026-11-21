@@ -60,6 +60,11 @@
     <main>
         <div class="page-title">
             <h1>Simulatsioon</h1>
+            <div class="controls day-controls">
+                <input type="date" id="date" value="2025-10-02">
+                <button type="button" id="load">Laadi hinnad</button>
+                <div id="day-count" aria-live="polite">Päev -</div>
+            </div>
         </div>
         
         <div class="simulation-page"> 
@@ -76,15 +81,12 @@
 
                             </div>
                             <div class="controls">
-                                <input type="date" id="date" value="2025-10-02">
-                                <button type="button" id="load">Laadi hinnad</button>
                                 <button type="button" id="reset" disabled>Reset</button>
                                 <button type="button" id="play-pause" class="play-pause-button" aria-label="Käivita" disabled>
                                     <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
                                     <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
                                 </button>
                                 <div class="speed-control-group">
-                                    <div id="day-count" aria-live="polite">Päev –</div>
                                     <div class="speed-buttons" role="group" aria-label="Kiirus">
                                         <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
                                         <button type="button" data-speed="1" aria-pressed="true">1×</button>
@@ -103,18 +105,21 @@
                 </div>
             </div>
             <div class="buy-sell-container">
+                <button type="button" class="battery-sell-button">MÜÜ</button>
                 <div class="buy-sell-target">
-                    <button type="button" class="target-decrease-button" aria-label="Vähenda">−</button>
-                    <div class="target-amount-wrapper">
-                        <span class="target-amount">0,0</span>
-                        <span class="target-unit">MWh</span>
+                    <span class="target-value">- €</span>
+                    <div class="target-picker">
+                        <button type="button" class="target-step-button" data-step="-10" aria-label="Vähenda 10 võrra">-</button>
+                        <button type="button" class="target-step-button small" data-step="-0.5" aria-label="Vähenda 0,5 võrra">-</button>
+                        <div class="target-amount-wrapper">
+                            <span class="target-amount">0</span>
+                            <span class="target-unit">MWh</span>
+                        </div>
+                        <button type="button" class="target-step-button small" data-step="0.5" aria-label="Suurenda 0,5 võrra">+</button>
+                        <button type="button" class="target-step-button" data-step="10" aria-label="Suurenda 10 võrra">+</button>
                     </div>
-                    <button type="button" class="target-increase-button" aria-label="Suurenda">+</button>
                 </div>
-                <div class="battery-buttons">
-                    <button type="button" class="battery-buy-button" data-state="charging" data-text="OSTA" aria-pressed="false">OSTA</button>
-                    <button type="button" class="battery-sell-button" data-state="discharging" data-text="MÜÜ" aria-pressed="false">MÜÜ</button>
-                </div>
+                <button type="button" class="battery-buy-button">OSTA</button>
             </div>
             <div class="event-container">
                 Event
@@ -191,17 +196,17 @@
         <div class="day-end-stats">
             <div>
                 <span>Rahajääk</span>
-                <strong id="day-end-balance">–</strong>
+                <strong id="day-end-balance">-</strong>
             </div>
 
             <div>
                 <span>Aku</span>
-                <strong id="day-end-energy">–</strong>
+                <strong id="day-end-energy">-</strong>
             </div>
 
             <div>
                 <span>Kasum / kahjum</span>
-                <strong id="day-end-profit">–</strong>
+                <strong id="day-end-profit">-</strong>
             </div>
         </div>
 
