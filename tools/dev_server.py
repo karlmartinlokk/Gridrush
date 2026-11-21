@@ -1,3 +1,5 @@
+"""Gridrushi kohalik testserver: eraldi mängijad ja mängukell."""
+
 import json
 import os
 import secrets
@@ -172,14 +174,6 @@ class Handler(SimpleHTTPRequestHandler):
                     400,
                     {"error": str(viga)}
                 )
-
-        elif url.path == "/cgi-bin/get_prices.py":
-            # Vana API tagastas korraga kõik 96 elektrihinda.
-            # Anti-cheat'i tõttu ei luba me seda enam kasutada.
-            self.saada_json(
-                403,
-                {"error": "Hinnad on mängu ajal peidetud."}
-            )
 
         else:
             # HTML, CSS, JavaScript ja pildid.
