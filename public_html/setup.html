@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/setup.css">
     <link rel="stylesheet" href="css/interface.css">
+
+    <script src="js/interface.js" defer></script>
+    <script src="js/setup.js" defer></script>
 </head>
 
 <body>
@@ -53,10 +56,38 @@
     <main>
         <div class="page-title">
             <h1>Töölaud</h1>
+            <div class="day-controls">
+                <div id="day-count" aria-live="polite">Päev -</div>
+            </div>
         </div>
 
-        <div class="simulation-page">
-            Töölaua sisu
+        <div class="setup-page">
+            <div class="current-setup">
+                <div class="current-setup-content" id="setup-panel-aku" role="tabpanel" aria-labelledby="setup-tab-aku">
+                    Aku sisu
+                </div>
+                <div class="current-setup-content" id="setup-panel-taristu" role="tabpanel" aria-labelledby="setup-tab-taristu" hidden>
+                    Taristu sisu
+                </div>
+                <div class="current-setup-content" id="setup-panel-satted" role="tabpanel" aria-labelledby="setup-tab-satted" hidden>
+                    Sätete sisu
+                </div>
+                <div class="current-setup-selection" role="tablist">
+                    <button type="button" id="setup-tab-aku" role="tab" aria-controls="setup-panel-aku" aria-selected="true">Aku</button>
+                    <button type="button" id="setup-tab-taristu" role="tab" aria-controls="setup-panel-taristu" aria-selected="false">Taristu</button>
+                    <button type="button" id="setup-tab-satted" role="tab" aria-controls="setup-panel-satted" aria-selected="false">Sätted</button>
+                </div>
+            </div>
+            <div class="store">
+                <div class="buy-batteries">
+                    Akud
+                </div>
+                <div class="buy-generators">
+                    <div class="buy-solar-panels">
+                        Päikesepaneelid
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="right-interface"> 
@@ -65,7 +96,7 @@
                     +X%
                 </span>
                 <div class="ri-money-sum">
-                    <span>10.000€</span>
+                    <span>0,00 €</span>
                 </div>
             </div>
             <div class="ri-battery">
@@ -87,14 +118,14 @@
                         <rect x="1.25" y="1.25" width="197.5" height="97.5" rx="12" stroke="currentColor" stroke-width="2.5"/>
                         <rect x="198" y="34" width="10" height="32" rx="3" fill="currentColor"/>
                         <use href="#battery-lines" stroke="currentColor" stroke-opacity="0.3"/>
-                        <rect id="battery-fill" class="battery-fill" x="8" y="8" width="184" height="84" rx="7" fill="url(#battery-fill-grad)"/>
+                        <rect id="battery-fill" class="battery-fill" x="8" y="8" width="0" height="84" rx="7" fill="url(#battery-fill-grad)"/>
                         <g clip-path="url(#battery-clip)">
                             <use href="#battery-lines" stroke="#0B1118" stroke-opacity="0.45"/>
                             <rect class="battery-shine" x="-40" width="40" height="100" fill="url(#battery-shine-grad)"/>
                         </g>
                     </svg>
                     <span class="battery-wire" aria-hidden="true"></span>
-                    <span class="battery-percent">100%</span>
+                    <span class="battery-percent">0%</span>
                 </div>
                 <span class="battery-capacity"> x / {max} MWh</span>
             </div>

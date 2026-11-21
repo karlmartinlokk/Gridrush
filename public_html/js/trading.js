@@ -62,49 +62,7 @@ function kuvaKauplemine() {
         s.energy < kogus ||
         s.balance + summa < -0.000001;
 
-    // Kuvame rahajäägi ja aku täituvuse.
-    leia('.ri-money-sum span').textContent =
-        s ? `${euro(s.balance)} €` : '– €';
-
-    leia('.battery-percent').textContent =
-        s ? `${Math.round(s.energy / s.capacity * 100)}%` : '0%';
-
-    leia('.battery-capacity').textContent =
-        s ? `${s.energy} / ${s.capacity} MWh` : '0 / 10 MWh';
-
-    // Aku SVG täitub vastavalt salvestatud energiale.
-    leia('#battery-fill').setAttribute(
-        'width', s ? 184 * s.energy / s.capacity : 0
-    );
-
-    // Kasumiprotsent tuleb otse Python backendist.
-    const muutusElement = leia('.ri-gain-percent');
-    const muutus = s ? s.profit_percent : null;
-
-    if (muutus === null) {
-        // Kui mäng pole alanud, näitame halli kriipsu.
-        muutusElement.textContent = '–';
-        muutusElement.style.color =
-            'var(--color-text-tertiary)';
-
-    } else {
-        // Kuvame kasumi või kahjumi protsendi.
-        muutusElement.textContent =
-            `${muutus > 0 ? '+' : ''}${muutus.toFixed(1)}%`;
-
-        // Positiivne on roheline, negatiivne punane.
-        if (muutus > 0) {
-            muutusElement.style.color =
-                'var(--color-charging)';
-        } else if (muutus < 0) {
-            muutusElement.style.color =
-                'var(--color-loss, #8f4a4a)';
-        } else {
-            // Muutuse puudumisel kasutame halli.
-            muutusElement.style.color =
-                'var(--color-text-tertiary)';
-        }
-    }
+    kuvaParemPaneel(s);
 
     // Lukustame vajadusel graafiku juhtnupud.
     if (typeof uuendaNupud === 'function') uuendaNupud();
