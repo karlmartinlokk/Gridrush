@@ -1,7 +1,5 @@
-
 """Gridrushi kohalik testserver: eraldi mängijad ja mängukell."""
 
-import importlib.util
 import json
 import os
 import secrets
@@ -18,16 +16,6 @@ from gridrush.trading import Kauplemismang, ManguViga
 
 ROOT = Path(__file__).resolve().parents[1]
 os.chdir(ROOT / "public_html")
-
-
-# Laeme olemasoleva elektrihindade API.
-spec = importlib.util.spec_from_file_location(
-    "get_prices",
-    ROOT / "public_html" / "cgi-bin" / "get_prices.py"
-)
-
-api = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(api)
 
 
 # Hoiame iga brauseriseansi mängu eraldi sõnastikus.
@@ -100,7 +88,7 @@ class Handler(SimpleHTTPRequestHandler):
             # Loome juhusliku ja turvalise seansitunnuse.
             tunnus = secrets.token_urlsafe(32)
 
-            # Väldime võimalikku olemasoleva tunnuse kordumist.
+            # Väldime olemasoleva tunnuse kordumist.
             while tunnus in seansid:
                 tunnus = secrets.token_urlsafe(32)
 
@@ -147,7 +135,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        """Tagastab mänguseisu, elektrihinnad või veebilehe failid."""
+        """Tagastab mänguseisu, lubatud hinnad või veebilehe failid."""
 
         url = urlsplit(self.path)
 
@@ -162,10 +150,30 @@ class Handler(SimpleHTTPRequestHandler):
             else:
                 self.saada_json(200, mang.seis())
 
-        elif url.path == "/cgi-bin/get_prices.py":
-            # Hindade andmebaas on kõigile mängijatele ühine.
-            status, andmed = api.get_prices_response(url.query)
-            self.saada_json(status, andmed)
+        elif url.path == "/api/demo/prices":
+            # Anti-cheat: näitame ainult serveri mängukellaga
+            # juba avanenud hinnapunkte.
+            mang = self.leia_mang()
+
+            if mang is None:
+                self.saada_json(
+                    403,
+                    {"error": "Mäng pole alustatud."}
+                )
+                return
+
+            try:
+                # Python kontrollib ise mänguaega ja hinnaindeksit.
+                # Brauser ei saa küsida kindlat tulevast indeksit.
+                andmed = mang.hinnad_nahtavad()
+
+                self.saada_json(200, andmed)
+
+            except ManguViga as viga:
+                self.saada_json(
+                    400,
+                    {"error": str(viga)}
+                )
 
         else:
             # HTML, CSS, JavaScript ja pildid.
@@ -176,7 +184,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         aadress = urlsplit(self.path).path
 
-        # Iga hinnapunkti jaoks enam /next päringut ei tehta.
+        # Hinnapunkte enam POST-päringutega edasi ei liigutata.
         lubatud = {
             "/api/demo/start",
             "/api/demo/trade",
