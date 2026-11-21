@@ -150,11 +150,6 @@ main {
   filter: brightness(0.9);
 }
 
-.battery-buy-button[aria-pressed="true"],
-.battery-sell-button[aria-pressed="true"] {
-  background-color: rgb(164, 0, 0);
-}
-
 .battery-buy-button {
   background-color: #1E3B3A;
   color: var(--color-charging);
