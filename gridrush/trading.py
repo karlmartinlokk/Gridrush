@@ -8,7 +8,7 @@ from threading import Lock
 
 from gridrush.db import loe_paev, saadaval_paevad
 from gridrush.day_filter import paeva_piirid
-from gridrush.batteries import AKUD
+from gridrush.batteries import AKUD, EFEKTIIVSUS
 
 
 # Üks mängupäev kestab tavakiirusel kolm minutit.
@@ -404,7 +404,7 @@ class Kauplemismang:
 
             # Pausi ajal saab kaubelda peatatud hinnaga.
             hind = self.hinnad[self.indeks]["price"]
-            summa = round(kogus * hind, 2)
+            summa = round(kogus * hind * EFEKTIIVSUS, 2)
 
             if tegevus == "buy":
                 if self.energia + kogus > self.aku_maht:
@@ -428,6 +428,8 @@ class Kauplemismang:
                         "Akus pole piisavalt elektrit."
                     )
 
+                summa = round(kogus * hind * EFEKTIIVSUS, 2)
+               
                 # Negatiivse hinna puhul võib müümine maksta.
                 if self.raha + summa < -0.000001:
                     raise ManguViga(
