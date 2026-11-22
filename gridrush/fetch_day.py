@@ -1,3 +1,8 @@
+# GRIDRUSH-DOC: moodul
+# ELERINGI KLIENT: küsib Eesti Nord Pooli 15-minutilised hinnad avalikust API-st.
+# Päringu kuupäevapiirid arvutatakse Eesti ajavööndis ja saadetakse UTC-s.
+# Välise päringu tulemus valideeritakse enne andmebaasi salvestamist.
+
 """ Küsib Eleringilt Eesti elektrihinnad """
 
 # JSON-andmete lugemiseks ja kuupäevadega töötamiseks vajalikud moodulid
@@ -14,11 +19,21 @@ API_URL = "https://dashboard.elering.ee/api/nps/price"
 
 
 # Küsib Eleringilt valitud päeva elektrihinnad
+# GRIDRUSH-DOC: def fetch_day
+# Küsib Eleringi API-st ühe Eesti kalendripäeva elektrihinnad.
+# paev: YYYY-MM-DD või date; kontrolli_taispaeva määrab intervallide kontrolli.
+# Algus ja lõpp arvutatakse Euroopa/Tallinna aja järgi, API saab UTC aja.
+# Päringu lõpp on järgmise päeva algusest 1 ms varasem, et päeva mitte ületada.
+# urlopen timeout=20 piirab võrgu ootamist; HTTP/JSON-vead levivad edasi.
+# Kasutame ainult data.ee kirjeid; tagastus on tootle_hinnad() normaliseeritud loend.
 def fetch_day(paev, kontrolli_taispaeva=True):
     # Leiame valitud päeva alguse ja lõpu Eesti aja järgi
     algus, lopp = paeva_piirid(paev)
 
     # Teisendab Eesti ajavööndi kellaaja UTC-vormingusse
+    # GRIDRUSH-DOC: def utc_tekst
+    # Abifunktsioon: teisendab ajavööndiga datetime'i UTC ISO 8601 kujule.
+    # Lisab millisekundid ja asendab '+00:00' lõpu 'Z'-iga, nagu API nõuab.
     def utc_tekst(aeg):
         return aeg.astimezone(timezone.utc).isoformat(
             timespec="milliseconds"
