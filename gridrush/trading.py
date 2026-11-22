@@ -37,6 +37,9 @@ class Kauplemismang:
         self.aku_maht = AKUD[self.aktiivne_aku]['maht']
         self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
         self.max_tehingu_maht = self.aku_voimsus * 0.25 
+        self.perioodi_tehingumaht = 0.0
+        self.viimane_tehinguperiood = None
+
         self.omatud_akud = {'starter'}
 
         # Praegune mängupäev ja hinnapunkt.
@@ -264,6 +267,8 @@ class Kauplemismang:
             self.aku_maht = AKUD[self.aktiivne_aku]['maht']
             self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
             self.max_tehingu_maht = self.aku_voimsus * 0.25
+            self.perioodi_tehingumaht = 0.0
+            self.viimane_tehinguperiood = None
 
             # Lähtestame mängukella.
             self.mangitud_sekundid = 0.0
@@ -402,6 +407,15 @@ class Kauplemismang:
                     "Päev on lõppenud. Alusta uut päeva."
                 )
 
+            # Kontrollime, kas algas uus hinnaperiood.
+            praegune_periood = (self.paev, self.indeks)
+
+            if praegune_periood != self.viimane_tehinguperiood:
+                self.perioodi_tehingumaht = 0.0
+                self.viimane_tehinguperiood = praegune_periood
+
+            if self.perioodi_tehingumaht + kogus > self.max_tehingu_maht:
+                raise ManguViga("Aku võimsus ei võimalda sellel perioodil nii palju kaubelda.")
             # Pausi ajal saab kaubelda peatatud hinnaga.
             hind = self.hinnad[self.indeks]["price"]
             summa = round(kogus * hind * EFEKTIIVSUS, 2)
@@ -440,6 +454,8 @@ class Kauplemismang:
                 self.energia -= kogus
 
                 teade = f"Müüsid {kogus} MWh elektrit."
+
+            self.perioodi_tehingumaht += kogus
 
             vastus = self._seis()
             vastus["message"] = teade
