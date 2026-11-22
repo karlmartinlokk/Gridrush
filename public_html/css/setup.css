@@ -229,6 +229,7 @@ main {
 }
 
 .store-item {
+  position: relative;
   flex: 0 0 12rem;
   display: flex;
   flex-direction: column;
@@ -252,4 +253,164 @@ main {
   font-size: 1.25rem;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-primary);
+}
+
+.store-item.locked {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-bg);
+}
+
+.store-item.locked > span {
+  opacity: 0.25;
+}
+
+.store-buy {
+  display: none;
+}
+
+.store-item.locked .store-buy {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  padding: 0.5rem 1.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #2b6e47;
+  color: var(--color-bg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.store-item.locked .store-buy:hover {
+  background-color: #38925e;
+}
+
+.buy-batteries .store-item:not(.locked) {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.buy-batteries .store-item:not(.locked, .selected):hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.store-item.selected {
+  border-color: var(--color-charging);
+}
+
+.store-item.selected::after {
+  content: "(valitud)";
+  position: absolute;
+  top: 0.50rem;
+  right: 0.50rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.store-item-icon {
+  position: absolute;
+  right: 0.625rem;
+  bottom: 0.625rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  overflow: visible;
+  transition: opacity 0.3s ease;
+}
+
+.store-item.locked .store-item-icon {
+  opacity: 0.25;
+}
+
+.icon-panel {
+  color: var(--color-text-secondary);
+  fill: var(--color-discharging);
+  fill-opacity: 0;
+}
+
+.icon-sun {
+  color: var(--color-discharging);
+  transform-origin: 35px 10px;
+}
+
+.icon-wind {
+  color: var(--color-text-secondary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.icon-tower {
+  color: var(--color-text-secondary);
+}
+
+.icon-rotor {
+  color: var(--color-text-primary);
+  transform-origin: 24px 18px;
+}
+
+.store-item:not(.locked) .icon-panel {
+  fill-opacity: 0.25;
+  animation: panel-glow 2.4s ease-in-out infinite alternate;
+}
+
+.store-item:not(.locked) .icon-sun {
+  animation:
+    sun-spin 16s linear infinite,
+    sun-pulse 2.4s ease-in-out infinite alternate;
+}
+
+.store-item:not(.locked) .icon-rotor {
+  animation: rotor-spin 4s linear infinite;
+}
+
+.store-item:not(.locked) .icon-wind {
+  opacity: 0.5;
+  animation: wind-blow 1.6s linear infinite;
+}
+
+.store-item:not(.locked):nth-child(3n + 2) .icon-rotor {
+  animation-duration: 3.4s;
+}
+
+.store-item:not(.locked):nth-child(3n) .icon-rotor {
+  animation-duration: 4.6s;
+}
+
+@keyframes panel-glow {
+  from { fill-opacity: 0.05; }
+  to { fill-opacity: 0.4; }
+}
+
+@keyframes sun-spin {
+  to { rotate: 360deg; }
+}
+
+@keyframes sun-pulse {
+  from { scale: 0.85; }
+  to { scale: 1.1; }
+}
+
+@keyframes wind-blow {
+  from { stroke-dashoffset: 36; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes rotor-spin {
+  to { rotate: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .store-item:not(.locked) .store-item-icon use { animation: none; }
 }

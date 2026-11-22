@@ -16,6 +16,44 @@
 </head>
 
 <body>
+    <svg class="icon-sprite" aria-hidden="true">
+        <symbol id="icon-solar-panel" viewBox="0 0 48 48">
+            <path d="M13 23H35L42 38H6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <path d="M20.3 23L18 38M27.7 23L30 38M9.5 30.5H38.5M24 38V44M18 44H30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="icon-sun" viewBox="0 0 48 48">
+            <circle cx="35" cy="10" r="4" fill="currentColor"/>
+            <path d="M35 1.5V3.5M35 16.5V18.5M26.5 10H28.5M41.5 10H43.5M29 4L30.4 5.4M39.6 14.6L41 16M29 16L30.4 14.6M39.6 5.4L41 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </symbol>
+        <linearGradient id="wind-fade" gradientUnits="userSpaceOnUse" x1="2" x2="46">
+            <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+            <stop offset="0.3" stop-color="#fff"/>
+            <stop offset="0.7" stop-color="#fff"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <mask id="wind-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48">
+            <rect width="48" height="48" fill="url(#wind-fade)"/>
+        </mask>
+        <symbol id="icon-wind" viewBox="0 0 48 48">
+            <g fill="none" stroke="currentColor" stroke-width="1.5" mask="url(#wind-mask)">
+                <path d="M2 10H46" stroke-dasharray="9 27"/>
+                <path d="M2 27H46" stroke-dasharray="0 14 7 15"/>
+                <path d="M2 37H46" stroke-dasharray="0 24 10 2"/>
+            </g>
+        </symbol>
+        <symbol id="icon-turbine-tower" viewBox="0 0 48 48">
+            <path d="M23 19.5L21.5 43H26.5L25 19.5Z" fill="currentColor"/>
+            <path d="M15 44H33" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </symbol>
+        <symbol id="icon-turbine-rotor" viewBox="0 0 48 48">
+            <g fill="currentColor">
+                <path d="M24 18C22.4 13 22.8 7.5 24 3.5C25.6 7.5 25.8 13 24 18Z"/>
+                <path d="M24 18C22.4 13 22.8 7.5 24 3.5C25.6 7.5 25.8 13 24 18Z" transform="rotate(120 24 18)"/>
+                <path d="M24 18C22.4 13 22.8 7.5 24 3.5C25.6 7.5 25.8 13 24 18Z" transform="rotate(240 24 18)"/>
+                <circle cx="24" cy="18" r="2.2"/>
+            </g>
+        </symbol>
+    </svg>
     <nav>
         <ul class="sidebar">
             <li class="sidebar-logo">
@@ -80,61 +118,81 @@
             </div>
             <h2 class="setup-heading store-heading">
                 Pood
-                <svg class="store-heading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.5h1.8L6.4 15h13.2L21.5 6H4.4"/><path d="M5.4 10.5h15.1M9.5 6v9M13 6v9M16.5 6v9" stroke-width="1.1"/><circle cx="8" cy="19" r="1.3"/><circle cx="18" cy="19" r="1.3"/></svg>
+                <svg class="store-heading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 3.5h1.8L6.4 15h13.2L21.5 6H4.4"/><path d="M5.4 10.5h15.1M9.5 6v9M13 6v9M16.5 6v9" stroke-width="1.1"/><circle cx="8" cy="19" r="1.3"/><circle cx="18" cy="19" r="1.3"/>
+                </svg>
             </h2>
             <div class="store">
                 <div class="store-section buy-batteries">
                     <h2 class="store-title">Akud</h2>
                     <div class="store-row">
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 1</span>
-                            <span class="store-item-spec">5 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item selected">
+                            <span class="store-item-name">Starter</span>
+                            <span class="store-item-spec store-item-capacity">10 MWh</span>
+                            <span class="store-item-spec store-item-power">10 MW</span>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 2</span>
-                            <span class="store-item-spec">10 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">Basic</span>
+                            <span class="store-item-spec store-item-capacity">15 MWh</span>
+                            <span class="store-item-spec store-item-power">12 MW</span>
+                            <span class="store-item-price">1 500 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 3</span>
-                            <span class="store-item-spec">15 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">Storage</span>
+                            <span class="store-item-spec store-item-capacity">30 MWh</span>
+                            <span class="store-item-spec store-item-power">10 MW</span>
+                            <span class="store-item-price">4 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 4</span>
-                            <span class="store-item-spec">20 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">Rapid</span>
+                            <span class="store-item-spec store-item-capacity">15 MWh</span>
+                            <span class="store-item-spec store-item-power">30 MW</span>
+                            <span class="store-item-price">5 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 5</span>
-                            <span class="store-item-spec">30 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">Advanced</span>
+                            <span class="store-item-spec store-item-capacity">40 MWh</span>
+                            <span class="store-item-spec store-item-power">40 MW</span>
+                            <span class="store-item-price">10 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 6</span>
-                            <span class="store-item-spec">40 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">Mega Storage</span>
+                            <span class="store-item-spec store-item-capacity">60 MWh</span>
+                            <span class="store-item-spec store-item-power">25 MW</span>
+                            <span class="store-item-price">15 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 7</span>
-                            <span class="store-item-spec">50 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">HyperCharge</span>
+                            <span class="store-item-spec store-item-capacity">35 MWh</span>
+                            <span class="store-item-spec store-item-power">70 MW</span>
+                            <span class="store-item-price">22 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 8</span>
-                            <span class="store-item-spec">75 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">Industrial</span>
+                            <span class="store-item-spec store-item-capacity">90 MWh</span>
+                            <span class="store-item-spec store-item-power">45 MW</span>
+                            <span class="store-item-price">32 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 9</span>
-                            <span class="store-item-spec">100 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">UltraGrid</span>
+                            <span class="store-item-spec store-item-capacity">100 MWh</span>
+                            <span class="store-item-spec store-item-power">100 MW</span>
+                            <span class="store-item-price">50 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item">
-                            <span class="store-item-name">Aku 10</span>
-                            <span class="store-item-spec">150 MWh</span>
-                            <span class="store-item-price">- €</span>
+                        <div class="store-item locked">
+                            <span class="store-item-name">Titan</span>
+                            <span class="store-item-spec store-item-capacity">160 MWh</span>
+                            <span class="store-item-spec store-item-power">120 MW</span>
+                            <span class="store-item-price">90 000 €</span>
+                            <button type="button" class="store-buy">Osta</button>
                         </div>
                     </div>
                 </div>
@@ -142,110 +200,150 @@
                     <div class="store-section buy-solar-panels">
                         <h2 class="store-title">Päikesepaneelid</h2>
                         <div class="store-row">
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 1</span>
                                 <span class="store-item-spec">1 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 2</span>
                                 <span class="store-item-spec">2 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 3</span>
                                 <span class="store-item-spec">3 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 4</span>
                                 <span class="store-item-spec">5 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 5</span>
                                 <span class="store-item-spec">8 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 6</span>
                                 <span class="store-item-spec">10 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 7</span>
                                 <span class="store-item-spec">15 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 8</span>
                                 <span class="store-item-spec">20 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 9</span>
                                 <span class="store-item-spec">30 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Päikesepark 10</span>
                                 <span class="store-item-spec">50 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-panel" href="#icon-solar-panel"/><use class="icon-sun" href="#icon-sun"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
                         </div>
                     </div>
                     <div class="store-section buy-wind-turbines">
                         <h2 class="store-title">Tuulegeneraatorid</h2>
                         <div class="store-row">
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 1</span>
                                 <span class="store-item-spec">1 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 2</span>
                                 <span class="store-item-spec">2 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 3</span>
                                 <span class="store-item-spec">3 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 4</span>
                                 <span class="store-item-spec">4 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 5</span>
                                 <span class="store-item-spec">5 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 6</span>
                                 <span class="store-item-spec">6 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 7</span>
                                 <span class="store-item-spec">8 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 8</span>
                                 <span class="store-item-spec">10 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 9</span>
                                 <span class="store-item-spec">12 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
-                            <div class="store-item">
+                            <div class="store-item locked">
                                 <span class="store-item-name">Tuulik 10</span>
                                 <span class="store-item-spec">15 MW</span>
                                 <span class="store-item-price">- €</span>
+                                <svg class="store-item-icon" viewBox="0 0 48 48" aria-hidden="true"><use class="icon-wind" href="#icon-wind"/><use class="icon-tower" href="#icon-turbine-tower"/><use class="icon-rotor" href="#icon-turbine-rotor"/></svg>
+                                <button type="button" class="store-buy">Osta</button>
                             </div>
                         </div>
                     </div>

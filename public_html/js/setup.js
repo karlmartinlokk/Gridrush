@@ -29,3 +29,34 @@ poeRead.forEach(rida => {
 });
 
 window.addEventListener('resize', () => poeRead.forEach(uuendaHajutust));
+
+
+document.querySelectorAll('.store-buy').forEach(nupp => {
+    nupp.addEventListener('click', () => {
+        nupp.closest('.store-item').classList.remove('locked');
+    });
+});
+
+
+const akud = document.querySelectorAll('.buy-batteries .store-item');
+const akuVaade = document.getElementById('setup-panel-aku');
+
+function naitaAkut(aku) {
+    akuVaade.textContent = 
+    `${aku.querySelector('.store-item-name').textContent} |
+    ${aku.querySelector('.store-item-capacity').textContent} |
+    ${aku.querySelector('.store-item-power').textContent}`;
+}
+
+akud.forEach(aku => {
+    aku.addEventListener('click', () => {
+        if (aku.classList.contains('locked')) return;
+
+        akud.forEach(teineAku => {
+            teineAku.classList.toggle('selected', teineAku === aku);
+        });
+        naitaAkut(aku);
+    });
+});
+
+naitaAkut(document.querySelector('.buy-batteries .store-item.selected'));
