@@ -54,7 +54,7 @@ main {
   width: 100%;
   background-color: var(--color-surface-alt);
   border-radius: 0.5rem;
-  height: 12rem;
+  height: 18rem;
   display: flex;
   flex-direction: column;
 }
@@ -121,4 +121,135 @@ main {
 
 @media (prefers-reduced-motion: reduce) {
   .current-setup-selection::before { transition: none; }
+}
+
+.store,
+.buy-generators {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.setup-heading {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.store-heading {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: solid var(--color-border) 3px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.625rem;
+}
+
+.store-heading-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.store-section {
+  height: 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--color-surface-alt);
+}
+
+.store-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.store-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+  --fade-left: 0rem;
+  --fade-right: 0rem;
+  mask-image:
+    linear-gradient(to right,
+      transparent 0,
+      black var(--fade-left),
+      black calc(100% - var(--fade-right)),
+      transparent 100%),
+    linear-gradient(black, black);
+  mask-size: 100% calc(100% - 0.5rem), 100% 0.5rem;
+  mask-position: top, bottom;
+  mask-repeat: no-repeat;
+  transition: --fade-left 0.2s ease, --fade-right 0.2s ease;
+}
+
+@property --fade-left {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0rem;
+}
+
+@property --fade-right {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0rem;
+}
+
+.store-row.fade-left {
+  --fade-left: 6rem;
+}
+
+.store-row.fade-right {
+  --fade-right: 6rem;
+}
+
+.store-row::-webkit-scrollbar {
+  height: 0.5rem;
+}
+
+.store-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.store-row::-webkit-scrollbar-thumb {
+  background: var(--color-button);
+  border: 0.125rem solid transparent;
+  background-clip: padding-box;
+  border-radius: 4rem;
+}
+
+.store-item {
+  flex: 0 0 12rem;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  border: solid var(--color-border) 2px;
+  border-radius: 0.5rem;
+  background-color: var(--color-surface);
+}
+
+.store-item-name {
+  font-size: 1.125rem;
+  color: var(--color-text-primary);
+}
+
+.store-item-spec {
+  color: var(--color-text-secondary);
+}
+
+.store-item-price {
+  margin-top: auto;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
 }
