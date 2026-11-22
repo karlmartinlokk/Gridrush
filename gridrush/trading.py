@@ -121,6 +121,33 @@ class Kauplemismang:
             "day_finished": self.paev_labi
         }
 
+    def hinnad_nahtavad(self):
+        """Tagastab ainult serveri mängukella järgi avanenud hinnad."""
+
+        with self.lukk:
+            if not self.hinnad:
+                raise ManguViga("Mäng pole alustatud.")
+
+            # Enne vastuse koostamist uuendame mängukella.
+            # Brauser ei saa ise määrata, milliseid hindu näeb.
+            self._uuenda_kell()
+
+            # Ajatemplid võib ette teada, kuid tulevased hinnad
+            # jäävad peidetuks kuni vastava perioodi alguseni.
+            return {
+                "date": self.paev,
+                "total": len(self.hinnad),
+                "index": self.indeks,
+                "unit": "EUR/MWh",
+                "prices": [
+                    {
+                        "timestamp": hind["timestamp"],
+                        "price": hind["price"] if i <= self.indeks else None
+                    }
+                    for i, hind in enumerate(self.hinnad)
+                ]
+            }
+
     def seis(self):
         """Tagastab olemasoleva mänguseisu seda lähtestamata."""
 
@@ -311,9 +338,9 @@ class Kauplemismang:
         if tegevus not in ("buy", "sell"):
             raise ManguViga("Tundmatu tehing.")
 
-        if type(kogus) is not int or kogus <= 0:
+        if type(kogus) not in (float, int) or kogus <= 0:
             raise ManguViga(
-                "Kogus peab olema positiivne täisarv."
+                "Kogus peab olema positiivne arv."
             )
 
         with self.lukk:

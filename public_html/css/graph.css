@@ -54,11 +54,11 @@
 }
 
 #graph-message-price[data-trend="Langeb"] {
-  color: rgb(255, 60, 34);
+  color: var(--color-loss);
 }
 
 #graph-message-price[data-trend="Tõuseb"] {
-  color: rgb(0, 200, 0);
+  color: var(--color-gain);
 }
 
 #graph-message-unit {

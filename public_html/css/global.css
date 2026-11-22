@@ -15,7 +15,8 @@
 
   --color-charging: #6CCBB8;
   --color-discharging: #E0B060;
-  --color-loss: #8f4a4a; /* negatiivne kasumiprotsent */
+  --color-gain: rgb(0, 200, 0);
+  --color-loss: rgb(255, 60, 34);
 }
 
 * {
