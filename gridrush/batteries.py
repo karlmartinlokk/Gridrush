@@ -63,13 +63,3 @@ AKUD = {
     }
 
 }
-
-print(AKUD["starter"]["maht"])
-
-aku = input('Aku: ').lower()
-if aku in AKUD:
-    print(f'Mahutavus: {AKUD[aku]["maht"]}')
-    print(f'Võimsus: {AKUD[aku]["võimsus"]}')
-    print(f'Hind: {AKUD[aku]["hind"]}')
-else:
-    print("Aku ei ole olemas.")

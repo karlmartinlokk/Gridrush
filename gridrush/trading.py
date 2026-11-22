@@ -8,6 +8,7 @@ from threading import Lock
 
 from gridrush.db import loe_paev, saadaval_paevad
 from gridrush.day_filter import paeva_piirid
+from gridrush.batteries import AKUD
 
 
 # Üks mängupäev kestab tavakiirusel kolm minutit.
@@ -32,7 +33,11 @@ class Kauplemismang:
         self.algsumma = 1000.0
         self.raha = self.algsumma
         self.energia = 0
-        self.aku_maht = 10
+        self.aktiivne_aku = 'starter'
+        self.aku_maht = AKUD[self.aktiivne_aku]['maht']
+        self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
+        self.max_tehingu_maht = self.aku_voimsus * 0.25 
+        self.omatud_akud = {'starter'}
 
         # Praegune mängupäev ja hinnapunkt.
         self.paev = None
@@ -46,6 +51,36 @@ class Kauplemismang:
         self.kaib = False
         self.paev_labi = False
         self.kiirus = 1.0
+
+    def osta_aku(self, aku_id):
+        with self.lukk:
+            if aku_id not in AKUD:
+                raise ManguViga("Sellist akut ei eksisteeri.")
+        
+        
+            if aku_id in self.omatud_akud:
+                raise ManguViga("Sul on see aku juba olemas.")
+       
+            aku_hind = AKUD[aku_id]['hind']
+        
+            if self.raha < aku_hind:
+                raise ManguViga("Sul pole piisavalt raha selle aku ostmiseks.")
+        
+            self.raha -= aku_hind
+            self.omatud_akud.add(aku_id)
+
+
+    def vaheta_aku(self, aku_id):
+        with self.lukk:
+
+            if aku_id not in self.omatud_akud:
+                raise ManguViga("See aku ei kuulu sulle.")
+           
+            self.aktiivne_aku = aku_id
+            self.aku_maht = AKUD[self.aktiivne_aku]['maht']
+            self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus'] 
+            self.max_tehingu_maht = self.aku_voimsus * 0.25 
+
 
     def _uuenda_kell(self):
         """Arvutab kehtiva hinnapunkti serveris möödunud aja põhjal."""
@@ -78,6 +113,33 @@ class Kauplemismang:
             len(self.hinnad) - 1,
             int(self.mangitud_sekundid / PERIOODI_PIKKUS)
         )
+    def hinnad_nahtavad(self):
+        """Tagastab ainult serveri mängukella järgi avanenud hinnad."""
+
+        with self.lukk:
+            if not self.hinnad:
+                raise ManguViga("Mäng pole alustatud.")
+
+            self._uuenda_kell()
+
+            return {
+                "date": self.paev,
+                "total": len(self.hinnad),
+                "index": self.indeks,
+                "unit": "EUR/MWh",
+                "prices": [
+                    {
+                        "timestamp": hind["timestamp"],
+                        "price": hind["price"] if i <= self.indeks else None
+                    }
+                    for i, hind in enumerate(self.hinnad)
+                ]
+            }
+
+
+
+
+
 
     def _seis(self):
         """Koostab mängija praeguse mänguseisu."""
@@ -110,6 +172,13 @@ class Kauplemismang:
             "balance": round(self.raha, 2),
             "energy": self.energia,
             "capacity": self.aku_maht,
+
+            "active_battery": self.aktiivne_aku,
+            "owned_batteries": list(self.omatud_akud),
+            "battery_power": self.aku_voimsus,
+            "max_trade_MWh": self.max_tehingu_maht,
+            "battery_models": AKUD,
+
             "initial_balance": self.algsumma,
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasum, 1),
@@ -120,33 +189,6 @@ class Kauplemismang:
             "running": self.kaib,
             "day_finished": self.paev_labi
         }
-
-    def hinnad_nahtavad(self):
-        """Tagastab ainult serveri mängukella järgi avanenud hinnad."""
-
-        with self.lukk:
-            if not self.hinnad:
-                raise ManguViga("Mäng pole alustatud.")
-
-            # Enne vastuse koostamist uuendame mängukella.
-            # Brauser ei saa ise määrata, milliseid hindu näeb.
-            self._uuenda_kell()
-
-            # Ajatemplid võib ette teada, kuid tulevased hinnad
-            # jäävad peidetuks kuni vastava perioodi alguseni.
-            return {
-                "date": self.paev,
-                "total": len(self.hinnad),
-                "index": self.indeks,
-                "unit": "EUR/MWh",
-                "prices": [
-                    {
-                        "timestamp": hind["timestamp"],
-                        "price": hind["price"] if i <= self.indeks else None
-                    }
-                    for i, hind in enumerate(self.hinnad)
-                ]
-            }
 
     def seis(self):
         """Tagastab olemasoleva mänguseisu seda lähtestamata."""
@@ -217,6 +259,11 @@ class Kauplemismang:
             self.indeks = 0
             self.raha = self.algsumma
             self.energia = 0
+            self.aktiivne_aku = 'starter'
+            self.omatud_akud = {'starter'}
+            self.aku_maht = AKUD[self.aktiivne_aku]['maht']
+            self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
+            self.max_tehingu_maht = self.aku_voimsus * 0.25
 
             # Lähtestame mängukella.
             self.mangitud_sekundid = 0.0
@@ -338,7 +385,7 @@ class Kauplemismang:
         if tegevus not in ("buy", "sell"):
             raise ManguViga("Tundmatu tehing.")
 
-        if type(kogus) not in (float, int) or kogus <= 0:
+        if type(kogus) not in (int, float) or kogus <= 0:
             raise ManguViga(
                 "Kogus peab olema positiivne arv."
             )
