@@ -10,6 +10,13 @@ Mängija saab osta elektrit madala hinnaga, salvestada selle akudesse ning müü
 
 Mängu ülesehitus ja kauplemisvahendid on inspireeritud börsikauplemisplatvormidest (näiteks TradingView), kus mängija saab jälgida hinnagraafikuid, analüüsida hinnamuutusi ning automatiseerida ostu- ja müügitehinguid.
 
+### Tööjaotus
+
+Kokkuvõttes tegid kõik grupiliikmed natukene kõike. Põhitööjaotus oli aga järgnev:
+- Karl-Martin: Projektijuhtimine, *frontend*, logode-ikoonide disain, repositooriumi- ja versioonihaldus
+- Mathias: *Backend* (server, API ja andmebaas), mänguloogika teostamine, dokumentatsioon
+- Jaak: Projekti idee ja n-ö äriloogika, akude ja generaatorite mudelid, *event*id
+
 ### Rühmatöö käitumisnormid
 
 Plaanis otsustatud normid on üle vaadatud ja meile jätkuvalt tähtsad, otsustasime need jätta samale kujule. Siiani probleeme ei ole tekkinud ja kõik on aktiivselt kaasa teinud.
