@@ -57,10 +57,12 @@ class Kauplemismang:
 
     def osta_aku(self, aku_id):
         with self.lukk:
-            if aku_id not in AKUD:
-                raise ManguViga("Sellist akut ei eksisteeri.")
-        
-        
+            if not self.hinnad:
+                raise ManguViga("Mäng pole alustatud.")
+
+            if not isinstance(aku_id, str) or aku_id not in AKUD:
+                raise ManguViga("Sellist akut pole olemas.")
+
             if aku_id in self.omatud_akud:
                 raise ManguViga("Sul on see aku juba olemas.")
        
@@ -68,9 +70,11 @@ class Kauplemismang:
         
             if self.raha < aku_hind:
                 raise ManguViga("Sul pole piisavalt raha selle aku ostmiseks.")
-        
-            self.raha -= aku_hind
+            
+            self.raha = round(self.raha - aku_hind, 2)
             self.omatud_akud.add(aku_id)
+            self._uuenda_kell()
+            return self._seis()
 
 
     def vaheta_aku(self, aku_id):
