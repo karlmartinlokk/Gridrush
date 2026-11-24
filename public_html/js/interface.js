@@ -50,6 +50,17 @@ function kuvaPaevadeLoendur(s) {
 }
 
 
+function kuvaSeadistuseLaetus(s) {
+    const taide = document.getElementById('setup-charge-fill');
+    if (!taide) return;
+
+    const korgus = s ? 251 * s.energy / s.capacity : 0;
+
+    taide.setAttribute('height', korgus);
+    taide.setAttribute('y', 255.5 - korgus);
+}
+
+
 async function laadiParemPaneel() {
     try {
         const vastus = await fetch('/api/demo/state', { cache: 'no-store' });
@@ -58,11 +69,13 @@ async function laadiParemPaneel() {
 
         kuvaParemPaneel(seis);
         kuvaPaevadeLoendur(seis);
+        kuvaSeadistuseLaetus(seis);
         return seis;
 
     } catch {
         kuvaParemPaneel(null);
         kuvaPaevadeLoendur(null);
+        kuvaSeadistuseLaetus(null);
         return null;
     }
 }

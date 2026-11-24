@@ -10,13 +10,13 @@
   --color-text-secondary: #9ba5af;  /* teine tekst */
   --color-text-tertiary: #4a5661;  /* kolmas tekst */
 
-  --color-button: #313943;
-  --color-button-hover: #414a54;
+  --color-button: #313943; /* nupu värv */
+  --color-button-hover: #414a54; /* nupu värv hiirega hõljumisel */
 
-  --color-charging: #6CCBB8;
-  --color-discharging: #E0B060;
-  --color-gain: rgb(0, 200, 0);
-  --color-loss: rgb(255, 60, 34);
+  --color-charging: #6CCBB8; /* peale laadimine */
+  --color-discharging: #E0B060; /* maha laadimine */
+  --color-gain: rgb(0, 200, 0); /* kasum/tõus  */
+  --color-loss: rgb(255, 60, 34); /* kahjum/langus */
 }
 
 * {
@@ -35,6 +35,10 @@
   border: 0.25rem solid transparent;
   background-clip: padding-box;
   border-radius: 4rem;
+}
+
+@media (max-width: 1600px) {
+  html { font-size: 80%; }
 }
 
 body {

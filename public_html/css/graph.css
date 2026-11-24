@@ -15,7 +15,8 @@
 }
 
 .simulation-graph {
-  height: 50dvh;
+  height: calc(100dvh - 22rem);
+  min-height: 65dvh;
   margin-bottom: auto;
   border-radius: 0.5rem;
   background-color: var(--color-surface-alt);
