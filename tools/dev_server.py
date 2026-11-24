@@ -1,3 +1,10 @@
+# GRIDRUSH-DOC: moodul
+# LOKAALNE HTTP-SERVER: ühendab HTML/JS-i ja Pythoni mängu ühte teenusesse.
+# Igale session-cookie'le vastab eraldi Kauplemismang objekt serveri mälus.
+# GET annab mänguseisu ja juba nähtavad hinnad; POST juhib mängu olekut.
+# Staatilised failid tulevad public_html kaustast, SQLite asub sellest väljaspool.
+# Serveri mälus olevad seansid ei säili protsessi taaskäivitusel.
+
 """Gridrushi kohalik testserver: eraldi mängijad ja mängukell."""
 
 import json
@@ -28,8 +35,18 @@ SEANSI_KESTUS = 7 * 24 * 60 * 60
 viimane_puhastus = 0.0
 
 
+# GRIDRUSH-DOC: class Handler
+# SimpleHTTPRequestHandler alamklass Gridrushi GET/POST API ja staatiliste failide jaoks.
+# ThreadingHTTPServer käsitleb korraga mitut päringut; seetõttu vajame lukke.
+# GET /api/demo/prices tagastab serveripõhiselt avanenud hinnad.
 class Handler(SimpleHTTPRequestHandler):
 
+    # GRIDRUSH-DOC: def leia_mang
+    # Loeb gridrush_session küpsise ja otsib olemasoleva mänguobjekti.
+    # Puuduva, vigase või aegunud küpsise korral tagastab None.
+    # Ühe seansi eluiga on 7 päeva viimasest päringust; puhastus toimub kord minutis.
+    # seansid_lukk kaitseb seansisõnastikku paralleelsete HTTP-päringute korral.
+    # See meetod EI loo uut seanssi: uus mäng tekib ainult POST /start kaudu.
     def leia_mang(self):
         """Leiab olemasoleva mängu, kuid ei loo uut seanssi."""
 
@@ -78,6 +95,11 @@ class Handler(SimpleHTTPRequestHandler):
 
             return kirje["game"]
 
+    # GRIDRUSH-DOC: def loo_seanss
+    # Loob pärast edukat mängu alustamist uue juhusliku seansitunnuse.
+    # secrets.token_urlsafe(32) väldib ennustatavaid ID-sid.
+    # Seob tunnuse mänguobjektiga ja uuendab ligipääsu aega.
+    # Saada_json() lisab vastusele HttpOnly/SameSite=Lax küpsise.
     def loo_seanss(self, mang):
         """Loob uue seansi ainult pärast edukat mängu alustamist."""
 
@@ -101,6 +123,10 @@ class Handler(SimpleHTTPRequestHandler):
         # Uus küpsis lisatakse mängu alustamise JSON-vastusele.
         self.uus_seanss = tunnus
 
+    # GRIDRUSH-DOC: def saada_json
+    # Seriaalib sõnastiku UTF-8 JSON-iks ja saadab HTTP vastuse päistega.
+    # Cache-Control: no-store takistab hinnavastuste brauserivahemällu salvestamist.
+    # Uue seansi korral lisatakse Set-Cookie; lokalis ei kasutata Secure lippu.
     def saada_json(self, status, andmed):
         """Saadab brauserile JSON-vastuse."""
 
@@ -134,6 +160,11 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    # GRIDRUSH-DOC: def do_GET
+    # Teenindab GET /api/demo/state ja /api/demo/prices päringuid.
+    # State tagastab {'active': False} või olemasoleva serveri mänguseisu.
+    # Prices ei luba ilma seansita lugeda ja varjab tulevaste hindade väärtused.
+    # Muudel URL-idel teenindab public_html staatilisi faile tavapärane handler.
     def do_GET(self):
         """Tagastab mänguseisu, lubatud hinnad või veebilehe failid."""
 
@@ -179,6 +210,12 @@ class Handler(SimpleHTTPRequestHandler):
             # HTML, CSS, JavaScript ja pildid.
             super().do_GET()
 
+    # GRIDRUSH-DOC: def do_POST
+    # Teenindab start, trade, resume, pause, speed ja next-day API päringuid.
+    # Kontrollib JSON-sisu ning 1..4096 baidi pikkuse enne töötlemist.
+    # Seanss luuakse alles pärast edukat start toimingut; mujal nõutakse olemasolevat.
+    # Tehingu lõpliku hinna määrab alati Kauplemismang.tehing() serveris.
+    # Valideerimisvead teisendatakse HTTP 400 JSON-veateadeteks.
     def do_POST(self):
         """Käsitleb mängu alustamist, kella ja tehinguid."""
 
