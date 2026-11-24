@@ -64,7 +64,7 @@ function synkroniseeriKell(seis) {
     paevadeLoendur.textContent =
         Number.isInteger(seis.day_number) && seis.day_number > 0
             ? `${seis.day_number}. päev`
-            : 'Päev –';
+            : 'Päev -';
 
     kiirus = Number(seis.speed);
 
@@ -937,7 +937,7 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
         kellaKinnitus = null;
 
         // Käsitsi uue päeva valimisel eemaldame vana mängu loenduri.
-        paevadeLoendur.textContent = 'Päev –';
+        paevadeLoendur.textContent = 'Päev -';
     }
 
     laadimine = true;

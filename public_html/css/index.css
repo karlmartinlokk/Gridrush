@@ -3,7 +3,7 @@ main {
   margin-left: 5rem;
   width: calc(100% - 5rem);
   grid-template-columns: minmax(10rem, 2fr) minmax(20rem, 1fr);
-  grid-template-rows: 1fr 9fr;
+  grid-template-rows: 6.25rem 1fr;
 }
 
 .page-title {
@@ -137,7 +137,7 @@ main {
   flex: 1 1 0;
   min-width: 0;
   padding: 0;
-  border-radius: 0.5rem;
+  border-radius: 2.5rem;
   font: inherit;
   font-size: 3rem;
   font-weight: 300;
