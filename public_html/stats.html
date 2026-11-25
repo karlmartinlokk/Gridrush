@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="css/interface.css">
 
     <script src="js/interface.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
+    <script src="js/stats.js" defer></script>
 </head>
 
 <body>
@@ -60,8 +62,209 @@
             </div>
         </div>
 
-        <div class="simulation-page">
-            Statistika sisu
+
+        <div class="simulation-page stats-page">
+
+            <div class="stats-header">
+                <div>
+                    <h2>Kauplemise ülevaade</h2>
+                    <p>Jälgi oma arengut ja kauplemistulemusi.</p>
+                </div>
+
+                <select id="stats-scope" aria-label="Statistikaperiood">
+                    <option value="all">Kogu mänguajalugu</option>
+                    <option value="game">Praegune mäng</option>
+                </select>
+            </div>
+
+            <p id="stats-status" role="status">
+                Laadin statistikat...
+            </p>
+
+            <!-- Peamised statistikanäitajad -->
+            <div class="stats-grid">
+
+                <div class="stat-card">
+                    <span>Kogukasum</span>
+                    <strong id="stat-profit">–</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span>Suurim vara väärtus</span>
+                    <strong id="stat-best-value">–</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span>Tehinguid kokku</span>
+                    <strong id="stat-trades">–</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span>Mängitud päevi</span>
+                    <strong id="stat-days">–</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span>Kasumlikud päevad</span>
+                    <strong id="stat-winrate">–</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span>Mänguaeg</span>
+                    <strong id="stat-playtime">–</strong>
+                </div>
+
+            </div>
+
+            <!-- Graafikud -->
+            <section class="stats-panel">
+
+                <h2>Varade väärtuse ajalugu</h2>
+
+                <div class="stats-chart">
+                    <canvas id="asset-chart"></canvas>
+                </div>
+
+            </section>
+
+            <section class="stats-panel">
+
+                <h2>Kasum päevade kaupa</h2>
+
+                <div class="stats-chart">
+                    <canvas id="profit-chart"></canvas>
+                </div>
+
+            </section>
+
+            <!-- Detailne statistika -->
+            <section class="stats-panel">
+
+                <h2>Kauplemisstatistika</h2>
+
+                <div class="stats-details">
+
+                    <div>
+                        <span>Ostutehinguid</span>
+                        <strong id="stat-buy-count">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Müügitehinguid</span>
+                        <strong id="stat-sell-count">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Ostetud elekter</span>
+                        <strong id="stat-energy-bought">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Müüdud elekter</span>
+                        <strong id="stat-energy-sold">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Madalaim ostuhind</span>
+                        <strong id="stat-lowest-buy">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Kõrgeim müügihind</span>
+                        <strong id="stat-highest-sell">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Keskmine ostuhind</span>
+                        <strong id="stat-average-buy">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Keskmine müügihind</span>
+                        <strong id="stat-average-sell">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Parim päev</span>
+                        <strong id="stat-best-day">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Halvim päev</span>
+                        <strong id="stat-worst-day">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Pikim kasumlike päevade seeria</span>
+                        <strong id="stat-streak">–</strong>
+                    </div>
+
+                    <div>
+                        <span>Alustatud mänge</span>
+                        <strong id="stat-games">–</strong>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- Achievements -->
+            <section class="stats-panel">
+
+                <div class="stats-section-header">
+                    <div>
+                        <h2>Achievements</h2>
+                        <p>Kogu mänguajaloo jooksul avatud saavutused.</p>
+                    </div>
+
+                    <strong id="achievement-count">0 / 15</strong>
+                </div>
+
+                <progress
+                    id="achievement-total-progress"
+                    value="0"
+                    max="100">
+                </progress>
+
+                <div id="achievements-grid"
+                    class="achievements-grid">
+                </div>
+
+            </section>
+
+            <!-- Tehingute ajalugu -->
+            <section class="stats-panel">
+
+                <div class="stats-section-header">
+                    <h2>Tehingute ajalugu</h2>
+                    <span>Viimased 100 tehingut</span>
+                </div>
+
+                <div class="stats-table-wrapper">
+
+                    <table class="stats-table">
+
+                        <thead>
+                            <tr>
+                                <th>Mäng</th>
+                                <th>Päev</th>
+                                <th>Aeg</th>
+                                <th>Tegevus</th>
+                                <th>Kogus</th>
+                                <th>Hind</th>
+                                <th>Raha muutus</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="transactions-body">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
         </div>
 
         <div class="right-interface"> 
