@@ -11,14 +11,23 @@ import json
 import os
 import secrets
 import time
+import sqlite3
 
 from http import cookies
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, parse_qs
 
 from gridrush.trading import Kauplemismang, ManguViga
+
+from gridrush.statistics import (
+    loo_tabelid,
+    loe_statistika,
+    mangija_olemas
+)
+
+from gridrush.achievements import loe_saavutused
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +41,7 @@ seansid_lukk = Lock()
 
 # Kasutamata seansi maksimaalne eluiga on 7 päeva.
 SEANSI_KESTUS = 7 * 24 * 60 * 60
+KUPSISE_KESTUS = 365 * 24 * 60 * 60
 viimane_puhastus = 0.0
 
 
@@ -95,32 +105,40 @@ class Handler(SimpleHTTPRequestHandler):
 
             return kirje["game"]
 
+    def loe_tunnus(self):
+        """Loeb brauseri mängijatunnuse."""
+
+        purk = cookies.SimpleCookie()
+
+        try:
+            purk.load(self.headers.get("Cookie", ""))
+
+            seanss = purk.get("gridrush_session")
+
+            return seanss.value if seanss else None
+
+        except cookies.CookieError:
+            return None
+
     # GRIDRUSH-DOC: def loo_seanss
     # Loob pärast edukat mängu alustamist uue juhusliku seansitunnuse.
     # secrets.token_urlsafe(32) väldib ennustatavaid ID-sid.
     # Seob tunnuse mänguobjektiga ja uuendab ligipääsu aega.
     # Saada_json() lisab vastusele HttpOnly/SameSite=Lax küpsise.
+    
     def loo_seanss(self, mang):
-        """Loob uue seansi ainult pärast edukat mängu alustamist."""
+        """Seob mänguobjekti püsiva mängijatunnusega."""
 
         praegu = time.monotonic()
+        tunnus = mang.player_id
 
         with seansid_lukk:
 
-            # Loome juhusliku ja turvalise seansitunnuse.
-            tunnus = secrets.token_urlsafe(32)
-
-            # Väldime olemasoleva tunnuse kordumist.
-            while tunnus in seansid:
-                tunnus = secrets.token_urlsafe(32)
-
-            # Salvestame uue mängija mänguobjekti.
             seansid[tunnus] = {
                 "game": mang,
                 "last_access": praegu
             }
 
-        # Uus küpsis lisatakse mängu alustamise JSON-vastusele.
         self.uus_seanss = tunnus
 
     # GRIDRUSH-DOC: def saada_json
@@ -150,7 +168,7 @@ class Handler(SimpleHTTPRequestHandler):
             cookie = (
                 f"gridrush_session={self.uus_seanss}; "
                 f"Path=/; HttpOnly; SameSite=Lax; "
-                f"Max-Age={SEANSI_KESTUS}"
+                f"Max-Age={KUPSISE_KESTUS}"
             )
 
             # HTTPS-i puhul peaks küpsis olema Secure.
@@ -169,6 +187,49 @@ class Handler(SimpleHTTPRequestHandler):
         """Tagastab mänguseisu, lubatud hinnad või veebilehe failid."""
 
         url = urlsplit(self.path)
+
+
+        if url.path == "/api/stats":
+            try:
+                mang = self.leia_mang()
+                tunnus = self.loe_tunnus()
+
+                parameetrid = parse_qs(url.query)
+                scope = parameetrid.get("scope", ["all"])[0]
+
+                if scope not in ("all", "game"):
+                    self.saada_json(400, {
+                        "error": "Vigane statistikaperiood."
+                    })
+                    return
+
+                # Uuendame aktiivse mängu seisu enne statistikat.
+                if mang is not None:
+                    mang.seis()
+
+                kogu_statistika = loe_statistika(tunnus)
+
+                if scope == "game":
+                    statistika = loe_statistika(
+                        tunnus,
+                        game_id=mang.game_id if mang else 0
+                    )
+                else:
+                    statistika = kogu_statistika
+
+                self.saada_json(200, {
+                    "stats": statistika,
+                    "achievements": loe_saavutused(kogu_statistika),
+                    "active_game": mang is not None
+                })
+
+            except sqlite3.Error:
+                self.saada_json(503, {
+                    "error": "Statistika pole hetkel kättesaadav."
+                })
+
+            return
+
 
         if url.path == "/api/demo/state":
             # Kontrollime, kas brauseril on olemasolev mäng.
@@ -265,7 +326,13 @@ class Handler(SimpleHTTPRequestHandler):
                 uus_mang = mang is None
 
                 if uus_mang:
-                    mang = Kauplemismang()
+                    tunnus = self.loe_tunnus()
+
+                    # Tundmatu mängija saab serveris loodud uue tunnuse.
+                    if not mangija_olemas(tunnus):
+                        tunnus = secrets.token_urlsafe(32)
+
+                    mang = Kauplemismang(player_id=tunnus)
 
                 # Alustame mängu kõigepealt.
                 # Kui see ebaõnnestub, uut seanssi ei salvestata.
@@ -309,9 +376,14 @@ class Handler(SimpleHTTPRequestHandler):
                 400,
                 {"error": str(viga)}
             )
+        except sqlite3.Error:
+            self.saada_json(503, {
+                "error": "Andmebaas pole hetkel kättesaadav."
+            })
 
 
 if __name__ == "__main__":
+    loo_tabelid()
     print(
         "Ava http://127.0.0.1:8000/index.html",
         flush=True
