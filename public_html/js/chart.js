@@ -785,7 +785,7 @@ async function alustaGraafik({ automaatne = false } = {}) {
 
             if (!seis) {
                 // Kui mängu ei leitud, alustame uut mängu.
-                seis = await window.kauplemine.alusta();
+                seis = await window.kauplemine.alusta(undefined, true);
                 uusMang = true;
             }
 

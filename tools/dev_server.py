@@ -38,6 +38,7 @@ os.chdir(ROOT / "public_html")
 # Seansid salvestatakse praegu serveri mällu.
 seansid = {}
 seansid_lukk = Lock()
+start_lukk = Lock()
 
 # Kasutamata seansi maksimaalne eluiga on 7 päeva.
 SEANSI_KESTUS = 7 * 24 * 60 * 60
@@ -141,6 +142,39 @@ class Handler(SimpleHTTPRequestHandler):
 
         self.uus_seanss = tunnus
 
+    def alusta_mang(self, andmed):
+        """Alustab uut mängu või tagastab juba käimasoleva."""
+
+        mang = self.leia_mang()
+
+        if mang is not None and andmed.get("only_if_missing"):
+            return mang.seis()
+
+        # Kui mängijal pole veel seanssi,
+        # loome uue mänguobjekti.
+        uus_mang = mang is None
+
+        if uus_mang:
+            tunnus = self.loe_tunnus()
+
+            # Tundmatu mängija saab serveris loodud uue tunnuse.
+            if not mangija_olemas(tunnus):
+                tunnus = secrets.token_urlsafe(32)
+
+            mang = Kauplemismang(player_id=tunnus)
+
+        # Alustame mängu kõigepealt.
+        # Kui see ebaõnnestub, uut seanssi ei salvestata.
+        tulemus = mang.alusta(
+            andmed.get("date")
+        )
+
+        # Alles edukas mängu alustamine loob uue seansi.
+        if uus_mang:
+            self.loo_seanss(mang)
+
+        return tulemus
+
     # GRIDRUSH-DOC: def saada_json
     # Seriaalib sõnastiku UTF-8 JSON-iks ja saadab HTTP vastuse päistega.
     # Cache-Control: no-store takistab hinnavastuste brauserivahemällu salvestamist.
@@ -240,7 +274,13 @@ class Handler(SimpleHTTPRequestHandler):
                 self.saada_json(200, {"active": False})
 
             else:
-                self.saada_json(200, mang.seis())
+                try:
+                    self.saada_json(200, mang.seis())
+
+                except sqlite3.Error:
+                    self.saada_json(503, {
+                        "error": "Andmebaas pole hetkel kättesaadav."
+                    })
 
         elif url.path == "/api/demo/prices":
             # Anti-cheat: näitame ainult serveri mängukellaga
@@ -266,6 +306,11 @@ class Handler(SimpleHTTPRequestHandler):
                     400,
                     {"error": str(viga)}
                 )
+
+            except sqlite3.Error:
+                self.saada_json(503, {
+                    "error": "Andmebaas pole hetkel kättesaadav."
+                })
 
         else:
             # HTML, CSS, JavaScript ja pildid.
@@ -315,36 +360,16 @@ class Handler(SimpleHTTPRequestHandler):
             if not isinstance(andmed, dict):
                 raise ManguViga("Vigane päring.")
 
-            # Otsime olemasolevat seanssi.
-            # See funktsioon ei loo uut mängu ega küpsist.
-            mang = self.leia_mang()
-
             if aadress == "/api/demo/start":
 
-                # Kui mängijal pole veel seanssi,
-                # loome uue mänguobjekti.
-                uus_mang = mang is None
-
-                if uus_mang:
-                    tunnus = self.loe_tunnus()
-
-                    # Tundmatu mängija saab serveris loodud uue tunnuse.
-                    if not mangija_olemas(tunnus):
-                        tunnus = secrets.token_urlsafe(32)
-
-                    mang = Kauplemismang(player_id=tunnus)
-
-                # Alustame mängu kõigepealt.
-                # Kui see ebaõnnestub, uut seanssi ei salvestata.
-                tulemus = mang.alusta(
-                    andmed.get("date")
-                )
-
-                # Alles edukas mängu alustamine loob uue seansi.
-                if uus_mang:
-                    self.loo_seanss(mang)
+                with start_lukk:
+                    tulemus = self.alusta_mang(andmed)
 
             else:
+                # Otsime olemasolevat seanssi.
+                # See funktsioon ei loo uut mängu ega küpsist.
+                mang = self.leia_mang()
+
                 # Kõik muud toimingud nõuavad olemasolevat mängu.
                 if mang is None:
                     raise ManguViga("Mäng pole alustatud.")

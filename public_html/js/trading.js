@@ -284,9 +284,9 @@ window.kauplemine = {
     taasta: taastaKauplemine,
 
     // Kui kuupäeva pole, valib Python ise juhusliku päeva.
-    alusta: paev => kauplemiseAPI(
+    alusta: (paev, ainultPuudumisel = false) => kauplemiseAPI(
         '/api/demo/start',
-        paev ? { date: paev } : {}
+        { date: paev || null, only_if_missing: ainultPuudumisel }
     ),
 
     get seis() {

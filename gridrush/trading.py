@@ -444,6 +444,8 @@ class Kauplemismang:
 
             uued_hinnad = self._loe_taispaev(uus_paev)
 
+            self._salvesta_ajalugu()
+
             # Uue päeva võrdluspunkt on eelmise päeva lõppväärtus.
             self.paeva_algvaartus = self._seis()["asset_value"]
 
@@ -459,7 +461,6 @@ class Kauplemismang:
             self.kaib = False
             self.paev_labi = False
 
-            self._salvesta_ajalugu()
             # Raha, aku ja kiirus jäävad samaks.
             return self._seis()
 
@@ -479,6 +480,7 @@ class Kauplemismang:
         if (
             type(kogus) not in (float, int)
             or not 0 < kogus <= self.aku_maht
+            or kogus % 0.5 != 0
         ):
             raise ManguViga("Vigane elektrikogus.")
 
