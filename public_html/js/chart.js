@@ -1,11 +1,3 @@
-/** GRIDRUSH-DOC: moodul
- * GRAAFIKU JUHTIMINE: Chart.js joonis, mängukella vaade ja päevavahetus.
- * Server hoiab tulevasi elektrihindu; brauser saab vaid avanenud hindade väärtused.
- * performance.now põhine ennustus juhib kuvamist, kuid API otsustab hinna avamise.
- * chart.js ei arvuta tehinguid; nendega tegeleb trading.js ning Python.
- */
-
-
 // Kuvab Eesti elektrihinnad liikuval joongraafikul.
 
 // Graafiku ja mängu muutujad
@@ -64,12 +56,6 @@ const PERIOODI_PIKKUS_SEK = PAEVA_PIKKUS_SEK / 96;
 
 
 // Salvestame serveri kinnitatud mänguseisu ja mängukella lähtepunkti.
-/** GRIDRUSH-DOC: function synkroniseeriKell
- * Salvestab serveri viimase kinnitatud aja, kiiruse ja töötamise oleku.
- * Võtab performance.now() hetkeseisu lähtepunktiks kohaliku ekstrapolatsiooni jaoks.
- * Uuendab päevaloendurit ning kiirusnuppude aria-pressed omadusi.
- * @param {Object} seis - serveri kinnitatud mänguseis (elapsed_seconds, speed, running).
- */
 function synkroniseeriKell(seis) {
     serveriSeis = seis;
 
@@ -100,12 +86,6 @@ function synkroniseeriKell(seis) {
 
 
 // Arvutame kohaliku mänguaja serveri kinnitatud kella järgi.
-/** GRIDRUSH-DOC: function praeguneManguaeg
- * Ennustab kohalikku mänguaega viimase serverikinnituse ja performance.now põhjal.
- * Pausil aega juurde ei lisata; tulemus piiratakse 180 mängusekundiga.
- * See EI ole autoriteetne tehingu- ega hinnajaotus; server kontrollib uuesti.
- * @returns {number} mängu hinnanguline aeg sekundites.
- */
 function praeguneManguaeg() {
     if (!kellaKinnitus) return 0;
 
@@ -125,12 +105,6 @@ function praeguneManguaeg() {
 
 // Graafiku värskendamine pärast ostu või müügi serverivastust.
 // trading.js kutsub seda funktsiooni pärast kinnitatud tehingut.
-/** GRIDRUSH-DOC: window.synkroniseeriManguseis
- * Võtab trading.js poolt edastatud tehinguvastuse ja sünkroniseerib graafiku.
- * Kui tehingu serveri indeks on edasi liikunud, küsitakse avanenud hinnad eraldi.
- * Ei kasuta kliendi mälus tulevaste hindade massiivi.
- * @param {Object} seis - POST /api/demo/trade serverivastus.
- */
 window.synkroniseeriManguseis = seis => {
     if (!seis) return;
 
@@ -156,11 +130,6 @@ window.synkroniseeriManguseis = seis => {
 
 
 // Hoiame meeles, kas mängija oli ise mängu pausile pannud.
-/** GRIDRUSH-DOC: function salvestaMangijaSoov
- * Salvestab sessioonimällu, kas mängija oli viimati valinud Play või Pause.
- * sessionStorage puudumise korral ignoreerib viga, sest see ei mõjuta serverit.
- * @param {boolean} kaib - true kui mäng oli käimas.
- */
 function salvestaMangijaSoov(kaib) {
     try {
         sessionStorage.setItem(
@@ -174,10 +143,6 @@ function salvestaMangijaSoov(kaib) {
 
 
 // Loeme mängija viimase salvestatud Play/Pause valiku.
-/** GRIDRUSH-DOC: function eelmineMangijaSoov
- * Loeb sessionStorage'ist viimase Play/Pause soovi või tagastab null.
- * @returns {string|null} '1' (mängis), '0' (paus) või null.
- */
 function eelmineMangijaSoov() {
     try {
         return sessionStorage.getItem('gridrush_was_playing');
@@ -188,12 +153,6 @@ function eelmineMangijaSoov() {
 
 
 // Kiiruse muutmisel teavitame Pythonit ainult ühe POST-päringuga.
-/** GRIDRUSH-DOC: function muudaKiirust
- * Muudab kiirust serveri /api/demo/speed kaudu, mitte ainult brauseris.
- * Enne mängu algust saab uuendada ainult kasutajaliidese valikut.
- * Käiva mängu korral luuakse uus kohaliku taimeri intervall.
- * @param {Event} event - kiirusnupu click sündmus.
- */
 async function muudaKiirust(event) {
     if (
         kaivitamine ||
@@ -253,11 +212,6 @@ async function muudaKiirust(event) {
 
 
 // Kasutame CSS-is defineeritud värve.
-/** GRIDRUSH-DOC: function cssVarv
- * Loeb CSS-i kohandatud omaduse jooksva väärtuse graafiku kujunduseks.
- * @param {string} nimi - nt --color-border.
- * @returns {string} CSS-värvi väärtus.
- */
 function cssVarv(nimi) {
     return getComputedStyle(document.documentElement)
         .getPropertyValue(nimi)
@@ -266,11 +220,6 @@ function cssVarv(nimi) {
 
 
 // Teisendame Unix-timestambi Eesti kellaajaks.
-/** GRIDRUSH-DOC: function kell
- * Teisendab sekundites Unix-ajatempli Eesti kohalikuks HH:MM kellaajaks.
- * @param {number} timestamp - Unix-sekundid, mitte millisekundid.
- * @returns {string} Eesti kohaliku aja tekst.
- */
 function kell(timestamp) {
     return new Date(timestamp * 1000).toLocaleTimeString(
         "et-EE", {
@@ -283,10 +232,7 @@ function kell(timestamp) {
 
 
 // Peatame graafiku taimeri.
-/** GRIDRUSH-DOC: function peataTaimer
- * Eemaldab ainult brauseri setInterval-taimeri; Pythonis kell ei muutu.
- * Serveri päris pausimiseks tuleb kasutada window.kauplemine.peata().
- */
+// Serveri mängukell ei muutu.
 function peataTaimer() {
     if (taimer !== null) {
         clearInterval(taimer);
@@ -296,10 +242,6 @@ function peataTaimer() {
 
 
 // Kuvame päeva lõpu kokkuvõtte Pythoni kinnitatud mänguseisust.
-/** GRIDRUSH-DOC: function avaPaevaLopuTeavitus
- * Kuvab HTML dialogis serveri seisust rahajäägi, aku ja kasumiprotsendi.
- * Sama dialoogi mitu korda ei avata.
- */
 function avaPaevaLopuTeavitus() {
     // Kontrollime, kas teavitusaken on HTML-is olemas.
     if (!paevaLopuDialog) {
@@ -342,12 +284,6 @@ function avaPaevaLopuTeavitus() {
 
 
 // Päev vahetub ainult mängija soovil; raha ja aku jäävad alles.
-/** GRIDRUSH-DOC: function alustaUutPaeva
- * Kinnitatud päevavahetus: küsib serverilt uue päeva ja avatud hinnad.
- * Säilitab raha ning aku, laadib graafiku uuesti ja jätkab serveri kella.
- * Topeltklikke ja pooleliolevaid päringuid takistavad olekulipud.
- * @returns {Promise<void>} asünkroonne päevavahetus.
- */
 async function alustaUutPaeva() {
     if (
         !paevLabi ||
@@ -435,10 +371,6 @@ async function alustaUutPaeva() {
 
 
 // Uuendame graafiku juhtnuppe vastavalt mängu olekule.
-/** GRIDRUSH-DOC: function uuendaNupud
- * Lukustab Play/Reset/Date/Load nupud käivitamise ja laadimise ajaks.
- * Peegeldab brauseri taimeri olekut ja päeva juhtimise piiranguid.
- */
 function uuendaNupud() {
     const kaib = taimer !== null;
 
@@ -466,12 +398,6 @@ function uuendaNupud() {
 
 
 // Uuendame graafikut ja seni nähtud hindade statistikat.
-/** GRIDRUSH-DOC: function kuvaSeis
- * Uuendab Chart.js andmepunkti ja kuvab seni avanenud hindade statistikat.
- * Keeldub NaN/null aktiivse hinna kuvamisest anti-cheat nõude tõttu.
- * Min, max ja keskmine arvutatakse seni nähtud, mitte kogu päeva hindadest.
- * Kutsutakse ka trading.js kuvaHind, mis värskendab kasutajaliidese vara väärtuse.
- */
 function kuvaSeis() {
     if (!chart || hinnad.length === 0) {
         return;
@@ -483,10 +409,6 @@ function kuvaSeis() {
     if (!Number.isFinite(praegune?.price)) return;
 
     // Leiame praeguse hinna muutuse võrreldes eelmisega.
-    /** GRIDRUSH-DOC: const vahe
-     * Arvutab praeguse ja eelmise avanenud hinnapunkti hinnavahe.
-     * Esimesel perioodil tagastab 0, et mitte lugeda puuduvat eelmist hinda.
-     */
     const vahe = () => {
         if (hetkeIndeks === 0) {
             return 0;
@@ -549,11 +471,6 @@ function kuvaSeis() {
 
 // Kinnitame serveriga päeva lõpu ühe GET-päringuga.
 // Nii ei lõpeta brauser päeva enne, kui see on ka serveris lõppenud.
-/** GRIDRUSH-DOC: function kinnitaPaevaLopp
- * Küsib serverilt lõpliku mänguseisu enne päeva lõpu dialoogi avamist.
- * Laeb võimalusel ka viimase avanenud hinnapunkti.
- * Kui serveri järgi päev veel kestab, jätkab kohaliku taimeriga.
- */
 async function kinnitaPaevaLopp() {
     if (sammKaib || paevLabi) return;
 
@@ -606,12 +523,6 @@ async function kinnitaPaevaLopp() {
 
 // Küsime serverilt ainult juba avanenud elektrihinnad.
 // Server ei väljasta tulevaste hinnaperioodide hindu.
-/** GRIDRUSH-DOC: function kysiNahtavadHinnad
- * GET /api/demo/prices tagastab 96 timestampi ja ainult avanenud hinnad.
- * Valideerib kuupäeva, pikkuse, indeksi ning price=null tulevastele punktidele.
- * cache:no-store vähendab aegunud hinnaandmete riski.
- * @returns {Promise<Object>} {date,total,index,prices,unit}.
- */
 async function kysiNahtavadHinnad() {
     const vastus = await fetch('/api/demo/prices', {
         cache: 'no-store'
@@ -647,12 +558,6 @@ async function kysiNahtavadHinnad() {
 
 
 // Värskendame graafikut ainult serveri poolt avaldatud hindadega.
-/** GRIDRUSH-DOC: function uuendaNahtavaidHindu
- * Küsib avanenud hinnad, kuid ei luba mitut samaaegset hinnapäringut.
- * Võrdleb kuupäeva ja paringuNumber versiooni, et vanad vastused ei kirjutaks
- * uue päeva/Reset'i andmeid üle. Värskendab ainult kinnitatud hindu.
- * @returns {Promise<void>} hindade uuenduse lõpuleviimine.
- */
 async function uuendaNahtavaidHindu() {
     if (!chart || !graafikuPaev || laadimine) return;
 
@@ -665,10 +570,6 @@ async function uuendaNahtavaidHindu() {
     const oodatudPaev = graafikuPaev;
     const oodatudVersioon = paringuNumber;
 
-    /** GRIDRUSH-DOC: const paring
-     * Üks asünkroonne hinna-GET; kontrollib enne DOM-i muutmist päringu versiooni.
-     * Kui päev või Reset on vahepeal muutunud, visatakse aegunud vastus kõrvale.
-     */
     const paring = (async () => {
         const andmed = await kysiNahtavadHinnad();
 
@@ -704,12 +605,6 @@ async function uuendaNahtavaidHindu() {
 
 // Joongraafik liigub brauseris serveri kinnitatud mängukella järgi.
 // Uue hinna jaoks teeme GET-päringu, mitte POST-päringut.
-/** GRIDRUSH-DOC: function lisaPunkt
- * Brauseri perioodiline graafiku samm: võrdleb kohalikku ja kinnitatud indeksit.
- * Uue intervalli korral tehakse GET; server võib hinda veel mitte avaldada.
- * Päringuviga jätab taimeri käima, et järgmisel sammul uuesti proovida.
- * 180 sekundi täitumisel kinnitatakse päeva lõpp serverist.
- */
 function lisaPunkt() {
     if (
         !chart ||
@@ -742,13 +637,6 @@ function lisaPunkt() {
 
 
 // Käivitame mängu või taastame selle serveris olevast mänguseansist.
-/** GRIDRUSH-DOC: function alustaGraafik
- * Taastab olemasoleva mänguseansi või alustab puuduva korral uue.
- * Laeb õige kuupäeva graafiku ja ainult avanenud hinnad.
- * Taastamisel arvestab mängija sessionStorage Play/Pause eelistust.
- * Seejärel saadab serverile resume ja käivitab kohaliku setInterval-taimeri.
- * @param {{automaatne?: boolean}} valikud - kas tegu on lehe automaatse taastamisega.
- */
 async function alustaGraafik({ automaatne = false } = {}) {
     // Play avab lõppenud päeval uue päeva teavituse.
     if (paevLabi && !automaatne) {
@@ -890,10 +778,6 @@ async function alustaGraafik({ automaatne = false } = {}) {
 
 
 // Peatame nii graafiku kui ka serveris oleva mängukella.
-/** GRIDRUSH-DOC: function peataGraafik
- * Peatab nii brauseri uuendustaimeri kui Pythoni mängukella.
- * Serveri vastus fikseerib lõpliku kehtiva hinna ja elapsed_seconds aja.
- */
 async function peataGraafik() {
     if (
         taimer === null ||
@@ -942,10 +826,6 @@ async function peataGraafik() {
 
 
 // Vahetame Play ja Pause vahel.
-/** GRIDRUSH-DOC: function lulitaGraafik
- * Play/Pause nupu sündmus: käivitab alustaGraafik või peataGraafik.
- * Lõppenud päeva korral avab selle asemel päeva lõpu dialoogi.
- */
 function lulitaGraafik() {
     // Päeva lõppedes avab Play-nupp teavituse uuesti.
     if (paevLabi) {
@@ -970,11 +850,6 @@ function lulitaGraafik() {
 
 
 // Reset alustab sama päeva uuesti ainult selle mängija mänguseansis.
-/** GRIDRUSH-DOC: function nulliGraafik
- * Reset: alustab serveris sama kuupäeva uue mänguna ja puhastab vana graafiku.
- * Laeb hinnad uuesti API-st, seega varem nähtud hinnad ei jää mällu.
- * Vastav uus Chart.js objekt lähtestab ka animatsioonide jälgimise.
- */
 async function nulliGraafik() {
     if (
         !chart ||
@@ -1033,14 +908,6 @@ async function nulliGraafik() {
 
 
 // Laeme valitud päeva hinnad SQLite'ist API kaudu.
-/** GRIDRUSH-DOC: function laadiGraafik
- * Loob valitud päevaks Chart.js graafiku serveri poolt avatud hindadest.
- * sailitaMang=true jätab raha ja aku puutumata; false alustab uue mängu.
- * Vanad päringuversioonid ignoreeritakse ja vana graafik hävitatakse.
- * Kasutasime olemasolevat Chart.js animatsiooni, telgi ja kujunduse seadistust.
- * @param {{sailitaMang?: boolean}} valikud - kas säilitada serveri mänguseanss.
- * @returns {Promise<boolean>} true kui graafiku laadimine õnnestus.
- */
 async function laadiGraafik({ sailitaMang = false } = {}) {
     // Väldime mitut samaaegset graafiku laadimist.
     if (laadimine) return false;
@@ -1096,11 +963,7 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
 
     uuendaNupud();
 
-    /** GRIDRUSH-DOC: const indeksiVahe
-     * Chart.js animatsiooni lähtekoht: uus punkt algab eelmise punkti asukohast.
-     * nahtudIndeksid Set väldib vana punktianimatsiooni kordumist muudel nuppudel.
-     * Tagastab x/y telje eelmise punkti asukoha või undefined.
-     */
+    // Uue punkti animatsioon algab eelmise punkti asukohast ja toimub vaid korra.
     const indeksiVahe = (context, axis) => {
         if (context.type !== "data" || context.dataIndex !== hetkeIndeks || context.dataIndex === 0) {
             return undefined;

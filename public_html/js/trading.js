@@ -1,10 +1,3 @@
-/** GRIDRUSH-DOC: moodul
- * KAUPLEMISLIIDES: ostu ja müügi nupud, akuvaade, raha ning tehingute API.
- * Python vastutab arvestuse eest; brauser kuvab ainult serveri kinnitatud tulemusi.
- * chart.js kutsub kuvaHind, et uuendada hetkehinna põhist vara väärtuse eelvaadet.
- */
-
-
 // Kauplemise juhtimine. Raha ja aku muutusi arvutab Python.
 let manguseis = null;
 let kogus = 1;
@@ -21,12 +14,6 @@ const sammuNupud = document.querySelectorAll('.target-step-button');
 
 
 // Kuvame serverist saadud mänguseisu.
-/** GRIDRUSH-DOC: function kuvaKauplemine
- * Värskendab ostu-müügi nupud, koguse, tehingu eelvaate, raha ja aku.
- * Nupud keelatakse, kui serveri seisu, aku mahtu või raha ei jätku.
- * Kuvab serverist saadud kasumi (või kohaliku kuvaHind arvutuse) ja aku SVG.
- * Ei tee võrgupäringut; uuendab ainult DOM-i.
- */
 function kuvaKauplemine() {
     const s = manguseis;
 
@@ -82,15 +69,6 @@ function kuvaKauplemine() {
 
 
 // Saadame tegevuse Pythonile ja salvestame kinnitatud vastuse.
-/** GRIDRUSH-DOC: function kauplemiseAPI
- * Saadab JSON POST-päringu Pythoni API-le ja salvestab kinnitatud mänguseisu.
- * paringKaib väldib samaaegseid muutmispäringuid ning lukustab nupud.
- * Pärast /trade vastust teavitab chart.js moodulit uue serveri indeksiga.
- * Vea puhul viskab Error ning taastab nupud finally-plokis.
- * @param {string} aadress - API tee (/api/demo/...).
- * @param {Object} andmed - POST JSON keha.
- * @returns {Promise<Object>} serveri mänguseis.
- */
 async function kauplemiseAPI(aadress, andmed = {}) {
     if (paringKaib)
         throw new Error('Eelmine toiming on pooleli.');
@@ -135,11 +113,6 @@ async function kauplemiseAPI(aadress, andmed = {}) {
 
 
 // Küsime Pythonilt, kas mäng on juba käimas.
-/** GRIDRUSH-DOC: function taastaKauplemine
- * GET /api/demo/state taastab seansi oleku ilma uut mängu loomata.
- * Kui server ütleb active=false, tühjendatakse kohalik manguseis.
- * Päringu ajal on juhtnupud lukus; vastus määrab kuvamisoleku.
- */
 async function taastaKauplemine() {
 
     // Väldime mitut samaaegset päringut.
@@ -179,12 +152,6 @@ async function taastaKauplemine() {
 
 
 // Ostame või müüme valitud koguse elektrit.
-/** GRIDRUSH-DOC: function teeTehing
- * Saadab valitud MWh koguse ostu või müügi Pythoni serverile.
- * Mängu raha ja aku muutub alles pärast serveri kinnitatud vastust.
- * Õnnestumisel näitab lühikest aku animatsiooni; vea korral kuvab teate.
- * @param {'buy'|'sell'} tegevus - tehingu liik.
- */
 async function teeTehing(tegevus) {
     try {
         const tulemus = await kauplemiseAPI('/api/demo/trade', {
@@ -239,10 +206,6 @@ leia('.battery-sell-button').addEventListener(
 
 
 // Hõljumisel kuvame tehingu eelvaate
-/** GRIDRUSH-DOC: const maaraEelvaade
- * Määrab hiirega OSTA/MÜÜ nupule liikudes kuvatava rahamuutuse eelvaate.
- * Ei muuda päris raha ega akut; ainult vaartusElement'i tekst/värv.
- */
 const maaraEelvaade = tegevus => {
     eelvaade = tegevus;
     kuvaKauplemine();
@@ -266,11 +229,6 @@ leia('.battery-sell-button').addEventListener(
 
 
 // Graafik kasutab neid funktsioone mänguaja juhtimiseks.
-/** GRIDRUSH-DOC: window.kauplemine
- * Avalik liides, mida chart.js kasutab serveri mängu juhtimiseks.
- * Ekspordib taasta, alusta, jatka, peata, muudaKiirust, uusPaev ja nulli.
- * Tegelikud rahalised tehingud tehakse vaid läbi kauplemiseAPI.
- */
 window.kauplemine = {
     get aktiivne() {
         return manguseis !== null;
