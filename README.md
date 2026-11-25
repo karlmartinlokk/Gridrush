@@ -21,6 +21,10 @@ Kokkuvõttes tegid kõik grupiliikmed natukene kõike. Põhitööjaotus oli aga 
 
 Plaanis otsustatud normid on üle vaadatud ja meile jätkuvalt tähtsad, otsustasime need jätta samale kujule. Siiani probleeme ei ole tekkinud ja kõik on aktiivselt kaasa teinud.
 
+### Tehisintellekti kasutamine
+
+Tehisintellekti on projektis kasutatud vastutustundlikult. Kõige enam tuimaks tööks, nagu kommentaaride ja dokumentatsiooni kirjutamine, komplekssemate disainide-animatsioonide realiseerimine SVG kujul ning koodi vorminduse ühtlustamine, kuid tehisintellekti abi on kasutatud ka näiteks koodi ülevaatusel ja äärejuhtude leidmisel.
+
 ### Käivitamine oma arvutis
 
 Enne käskluste läbiviimist on soovitatud luua virtuaalkeskkond (virtual environment) ja see tööle panna.
