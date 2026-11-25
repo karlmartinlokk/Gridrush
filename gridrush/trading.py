@@ -14,7 +14,6 @@ from gridrush.day_filter import paeva_piirid
 PAEVA_PIKKUS = 180.0
 PERIOODI_PIKKUS = PAEVA_PIKKUS / 96
 
-# Kiirused, mida mängija saab valida.
 LUBATUD_KIIRUSED = (0.5, 1.0, 2.0, 5.0)
 
 
@@ -26,22 +25,18 @@ class ManguViga(ValueError):
 # Ühe brauseriseansi iseseisev mäng koos serveri kellaga.
 class Kauplemismang:
     def __init__(self):
-        # Iga mängija saab oma mänguobjekti ja luku.
         self.lukk = Lock()
 
-        # Mängu algseaded.
         self.algsumma = 1000.0
         self.raha = self.algsumma
         self.energia = 0
         self.aku_maht = 10
 
-        # Praegune mängupäev ja hinnapunkt.
         self.paev = None
         self.hinnad = []
         self.indeks = 0
         self.paevade_arv = 0
 
-        # Serveripõhise mängukella muutujad.
         self.mangitud_sekundid = 0.0
         self.viimane_kell = None
         self.kaib = False
@@ -52,7 +47,6 @@ class Kauplemismang:
     def _uuenda_kell(self):
         """Arvutab kehtiva hinnapunkti serveris möödunud aja põhjal."""
 
-        # Pausil olles mänguaeg edasi ei liigu.
         if not self.kaib:
             return
 
@@ -62,19 +56,16 @@ class Kauplemismang:
         if self.viimane_kell is not None:
             vahe = max(0.0, praegu - self.viimane_kell)
 
-            # Mänguaeg sõltub kasutaja valitud kiirusest.
             self.mangitud_sekundid += vahe * self.kiirus
 
         self.viimane_kell = praegu
 
-        # Kui terve mängupäev on läbi, peatame mängukella.
         if self.mangitud_sekundid >= PAEVA_PIKKUS:
             self.mangitud_sekundid = PAEVA_PIKKUS
             self.paev_labi = True
             self.kaib = False
             self.viimane_kell = None
 
-        # Arvutame hinnaindeksi mänguaja järgi.
         # Brauserist indeksit ei usaldata.
         self.indeks = min(
             len(self.hinnad) - 1,
@@ -93,7 +84,6 @@ class Kauplemismang:
         # Vara väärtus = raha + akus oleva elektri turuväärtus.
         vara_vaartus = self.raha + self.energia * hind["price"]
 
-        # Kasumi või kahjumi protsent algsummast.
         if self.algsumma > 0:
             kasum = (
                 (vara_vaartus - self.algsumma)
@@ -117,7 +107,6 @@ class Kauplemismang:
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasum, 1),
 
-            # Brauser kasutab neid mängukella kuvamiseks.
             "elapsed_seconds": round(self.mangitud_sekundid, 6),
             "speed": self.kiirus,
             "running": self.kaib,
@@ -131,8 +120,6 @@ class Kauplemismang:
             if not self.hinnad:
                 raise ManguViga("Mäng pole alustatud.")
 
-            # Enne vastuse koostamist uuendame mängukella.
-            # Brauser ei saa ise määrata, milliseid hindu näeb.
             self._uuenda_kell()
 
             # Ajatemplid võib ette teada, kuid tulevased hinnad
@@ -155,11 +142,9 @@ class Kauplemismang:
         """Tagastab olemasoleva mänguseisu seda lähtestamata."""
 
         with self.lukk:
-            # Kui selles seansis mängu pole, tagastame active: false.
             if not self.hinnad:
                 return {"active": False}
 
-            # Värskendame kõigepealt serveripõhist mängukella.
             self._uuenda_kell()
 
             return self._seis()
@@ -188,7 +173,6 @@ class Kauplemismang:
     def alusta(self, paev=None):
         """Alustab ainult selle mängija jaoks uue mängu."""
 
-        # Kui kuupäeva pole antud, valime juhusliku päeva.
         if paev is None:
             paevad = saadaval_paevad()
 
@@ -199,7 +183,6 @@ class Kauplemismang:
 
             paev = random.choice(paevad)
 
-        # Kontrollime kuupäeva vormingut.
         try:
             if (
                 not isinstance(paev, str)
@@ -213,7 +196,6 @@ class Kauplemismang:
         hinnad = self._loe_taispaev(paev)
 
         with self.lukk:
-            # Lähtestame raha, aku ja hinnapunkti.
             self.paev = paev
             self.hinnad = hinnad
             self.paevade_arv = 1
@@ -221,7 +203,6 @@ class Kauplemismang:
             self.raha = self.algsumma
             self.energia = 0
 
-            # Lähtestame mängukella.
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
             self.kaib = False
@@ -244,7 +225,6 @@ class Kauplemismang:
                     "Päev on lõppenud. Alusta uut päeva."
                 )
 
-            # Juba töötavat mängukella uuesti ei alustata.
             if not self.kaib:
                 self.viimane_kell = time.monotonic()
                 self.kaib = True
@@ -284,7 +264,6 @@ class Kauplemismang:
             # Arvestame senise aja veel vana kiirusega.
             self._uuenda_kell()
 
-            # Järgmised sekundid liiguvad uue kiirusega.
             self.kiirus = float(kiirus)
 
             return self._seis()
@@ -298,7 +277,6 @@ class Kauplemismang:
 
             self._uuenda_kell()
 
-            # Päeva ei tohi vahetada enne selle lõppu.
             if not self.paev_labi:
                 raise ManguViga(
                     "Praegune päev pole veel lõppenud."
@@ -320,19 +298,16 @@ class Kauplemismang:
 
             uued_hinnad = self._loe_taispaev(uus_paev)
 
-            # Vahetame päeva ja alustame indeksist 0.
             self.paev = uus_paev
             self.hinnad = uued_hinnad
             self.indeks = 0
             self.paevade_arv += 1
 
-            # Lähtestame ainult mängukella.
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
             self.kaib = False
             self.paev_labi = False
 
-            # Raha, aku ja kiirus jäävad samaks.
             return self._seis()
 
     def tehing(self, tegevus, kogus):
@@ -350,7 +325,6 @@ class Kauplemismang:
             if not self.hinnad:
                 raise ManguViga("Mäng pole alustatud.")
 
-            # Arvutame serveri kellaga tehingu tegeliku hinnapunkti.
             self._uuenda_kell()
 
             if self.paev_labi:

@@ -1,4 +1,6 @@
-// Kauplemise juhtimine. Raha ja aku muutusi arvutab Python.
+// Kauplemine. Raha ja aku muutusi arvutab Python.
+// Autorid: Mathias Mander, Karl-Martin Lokk
+
 let manguseis = null;
 let kogus = 1;
 let paringKaib = false;
@@ -28,7 +30,7 @@ function kuvaKauplemine() {
             (samm < 0 ? kogus <= 0.5 : kogus >= s.capacity);
     });
 
-    // Kontrollime, kas ost ja müük on võimalikud.
+    // Arvutame valitud koguse väärtuse hetkehinnaga.
     const summa = s ? kogus * s.price : 0;
 
     // Hõljumisel näitame kui palju raha muutuks nupuvajutusel
@@ -38,6 +40,7 @@ function kuvaKauplemine() {
 
     const vaartusElement = leia('.target-value');
 
+    // Eelvaates lisame summale märgi, muidu kuvame tehingu väärtuse.
     if (!s) {
         vaartusElement.textContent = '- €';
     } else if (rahaMuutus === null) {
@@ -51,6 +54,7 @@ function kuvaKauplemine() {
     vaartusElement.classList.toggle('gain', Boolean(s) && rahaMuutus > 0);
     vaartusElement.classList.toggle('loss', Boolean(s) && rahaMuutus < 0);
 
+    // Keelame nupud, kui aku mahust, energiast või rahast ei piisa.
     leia('.battery-buy-button').disabled =
         !s || paringKaib ||
         s.energy + kogus > s.capacity ||
@@ -230,10 +234,12 @@ leia('.battery-sell-button').addEventListener(
 
 // Graafik kasutab neid funktsioone mänguaja juhtimiseks.
 window.kauplemine = {
+    // Kas mäng on alustatud?
     get aktiivne() {
         return manguseis !== null;
     },
 
+    // Kas serveripäring on pooleli?
     get toimetab() {
         return paringKaib;
     },
@@ -247,6 +253,7 @@ window.kauplemine = {
         paev ? { date: paev } : {}
     ),
 
+    // Viimane teadaolev mänguseis
     get seis() {
     return manguseis;
 },
@@ -293,7 +300,7 @@ kuvaHind: (hind, indeks) => {
     // Alustame järgmist päeva pärast eelmise päeva lõppu.
     uusPaev: () => kauplemiseAPI('/api/demo/next-day'),
 
-
+    // Kuvab mängijale teate.
     teata,
 
     // Tühjendab kohaliku mänguvaate.

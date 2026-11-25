@@ -18,12 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 os.chdir(ROOT / "public_html")
 
 
-# Hoiame iga brauseriseansi mängu eraldi sõnastikus.
 # Seansid salvestatakse praegu serveri mällu.
 seansid = {}
 seansid_lukk = Lock()
 
-# Kasutamata seansi maksimaalne eluiga on 7 päeva.
 SEANSI_KESTUS = 7 * 24 * 60 * 60
 viimane_puhastus = 0.0
 
@@ -33,10 +31,8 @@ class Handler(SimpleHTTPRequestHandler):
     def leia_mang(self):
         """Leiab olemasoleva mängu, kuid ei loo uut seanssi."""
 
-        # Iga päringu alguses eeldame, et uut küpsist pole vaja.
         self.uus_seanss = None
 
-        # Loeme brauseri olemasoleva seansiküpsise.
         purk = cookies.SimpleCookie()
 
         try:
@@ -51,7 +47,6 @@ class Handler(SimpleHTTPRequestHandler):
 
         global viimane_puhastus
 
-        # Kaitseme seansside sõnastikku samaaegsete päringute eest.
         with seansid_lukk:
 
             # Eemaldame aegunud seansid kõige rohkem kord minutis.
@@ -66,14 +61,11 @@ class Handler(SimpleHTTPRequestHandler):
 
                 viimane_puhastus = praegu
 
-            # Kui küpsis puudub või seanss on aegunud,
-            # ei loo me uut mängu ega küpsist.
             kirje = seansid.get(tunnus) if tunnus else None
 
             if kirje is None:
                 return None
 
-            # Olemasolev mängija jätkab oma varasemat mängu.
             kirje["last_access"] = praegu
 
             return kirje["game"]
@@ -85,14 +77,11 @@ class Handler(SimpleHTTPRequestHandler):
 
         with seansid_lukk:
 
-            # Loome juhusliku ja turvalise seansitunnuse.
             tunnus = secrets.token_urlsafe(32)
 
-            # Väldime olemasoleva tunnuse kordumist.
             while tunnus in seansid:
                 tunnus = secrets.token_urlsafe(32)
 
-            # Salvestame uue mängija mänguobjekti.
             seansid[tunnus] = {
                 "game": mang,
                 "last_access": praegu
@@ -119,7 +108,6 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
 
-        # Seansiküpsis lisatakse ainult uue mängija loomisel.
         if getattr(self, "uus_seanss", None):
             cookie = (
                 f"gridrush_session={self.uus_seanss}; "
@@ -140,8 +128,6 @@ class Handler(SimpleHTTPRequestHandler):
         url = urlsplit(self.path)
 
         if url.path == "/api/demo/state":
-            # Kontrollime, kas brauseril on olemasolev mäng.
-            # Kui ei ole, ei loo me uut seanssi ega küpsist.
             mang = self.leia_mang()
 
             if mang is None:
@@ -163,8 +149,6 @@ class Handler(SimpleHTTPRequestHandler):
                 return
 
             try:
-                # Python kontrollib ise mänguaega ja hinnaindeksit.
-                # Brauser ei saa küsida kindlat tulevast indeksit.
                 andmed = mang.hinnad_nahtavad()
 
                 self.saada_json(200, andmed)
@@ -176,7 +160,6 @@ class Handler(SimpleHTTPRequestHandler):
                 )
 
         else:
-            # HTML, CSS, JavaScript ja pildid.
             super().do_GET()
 
     def do_POST(self):
@@ -184,7 +167,6 @@ class Handler(SimpleHTTPRequestHandler):
 
         aadress = urlsplit(self.path).path
 
-        # Hinnapunkte enam POST-päringutega edasi ei liigutata.
         lubatud = {
             "/api/demo/start",
             "/api/demo/trade",
@@ -202,7 +184,6 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         try:
-            # Kontrollime päringu pikkust ja JSON-i vormingut.
             pikkus = int(
                 self.headers.get("Content-Length", "0")
             )
@@ -217,14 +198,10 @@ class Handler(SimpleHTTPRequestHandler):
             if not isinstance(andmed, dict):
                 raise ManguViga("Vigane päring.")
 
-            # Otsime olemasolevat seanssi.
-            # See funktsioon ei loo uut mängu ega küpsist.
             mang = self.leia_mang()
 
             if aadress == "/api/demo/start":
 
-                # Kui mängijal pole veel seanssi,
-                # loome uue mänguobjekti.
                 uus_mang = mang is None
 
                 if uus_mang:
@@ -236,12 +213,10 @@ class Handler(SimpleHTTPRequestHandler):
                     andmed.get("date")
                 )
 
-                # Alles edukas mängu alustamine loob uue seansi.
                 if uus_mang:
                     self.loo_seanss(mang)
 
             else:
-                # Kõik muud toimingud nõuavad olemasolevat mängu.
                 if mang is None:
                     raise ManguViga("Mäng pole alustatud.")
 

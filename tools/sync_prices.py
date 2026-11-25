@@ -19,7 +19,6 @@ def sobiv_paev(paev):
     return int((lopp.timestamp() - algus.timestamp()) / 900) == 96
 
 
-# Kontrollib, kas kõik 96 hinnakirjet on andmebaasis olemas
 def taielik_paev(paev, hinnad):
     if not sobiv_paev(paev):
         return False
@@ -37,24 +36,20 @@ def taielik_paev(paev, hinnad):
     return olemas == oodatud
 
 
-# Laeb valitud päeva hinnad andmebaasi
 def laadi_paev(paev):
     if isinstance(paev, str):
         paev = date.fromisoformat(paev)
 
-    # Jätame kellakeeramise päevad vahele
     if not sobiv_paev(paev):
         print(f"{paev}: kellakeeramise päev, jätame vahele.")
         return []
 
-    # Kontrollime, kas hinnad on juba andmebaasis
     olemas = loe_paev(paev)
 
     if taielik_paev(paev, olemas):
         print(f"{paev}: hinnad juba andmebaasis.")
         return olemas
 
-    # Puuduvate andmete korral küsime hinnad Eleringilt
     hinnad = fetch_day(paev)
     lisatud = salvesta_hinnad(hinnad)
 
@@ -69,11 +64,9 @@ def uuenda():
     for vahe in (-3, -2, -1):
         paev = tana + timedelta(days=vahe)
 
-        # Kellakeeramise päevi ei lae
         if not sobiv_paev(paev):
             continue
 
-        # Juba salvestatud päevi uuesti ei küsi
         if taielik_paev(paev, loe_paev(paev)):
             continue
 
@@ -93,11 +86,9 @@ def backfill():
     for i in range((tana - ALGUS).days, 0, -1):
         paev = tana - timedelta(days=i)
 
-        # Kellakeeramise päevi ei lae
         if not sobiv_paev(paev):
             continue
 
-        # Kontrollime, kas päev on juba täielikult olemas
         try:
             if taielik_paev(paev, loe_paev(paev)):
                 continue
@@ -106,7 +97,6 @@ def backfill():
             vigased_paevad.append(paev)
             continue
 
-        # Proovime puuduvad hinnad laadida
         try:
             laadi_paev(paev)
 
@@ -118,13 +108,11 @@ def backfill():
             # Ootame ka siis, kui laadimisel tekkis viga
             time.sleep(5)
 
-    # Kokkuvõte
     if vigased_paevad:
         print(f"Andmete laadimise katse lõpetatud. Vigaseid päevi: {len(vigased_paevad)}")
     else:
         print("Andmete laadimine lõpetatud.")
 
-# Esmane andmete laadimine ja uuendamine
 def alusta():
     kogus, _ = statistika()
 
@@ -146,7 +134,6 @@ def alusta():
     uuenda()
 
 
-# Kuvab andmebaasi statistika
 def naita_seisu():
     kogus, viimane = statistika()
 
@@ -167,7 +154,6 @@ def naita_seisu():
         print("Hind:", hind, "€/MWh")
 
 
-# Käskude valimine terminalist
 if __name__ == "__main__":
     kask = sys.argv[1] if len(sys.argv) > 1 else "start"
 

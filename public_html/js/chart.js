@@ -1,4 +1,6 @@
-// Kuvab Eesti elektrihinnad liikuval joongraafikul.
+// Liikuv joongraafik mis genereerib APIst saadud elektrihindade järgi.
+// Autorid: Mathias Mander, Karl-Martin Lokk
+// Graafiku teek: Chart.js 4 (MIT-litsents), https://www.chartjs.org/
 
 // Graafiku ja mängu muutujad
 let chart = null;
@@ -26,6 +28,7 @@ let sammKaib = false;
 // Tavakiirusel kestab üks mängupäev umbes kolm minutit.
 const TAVALINE_SAMM_MS = 180000 / 96;
 
+// Mängija valitud kiiruse kordaja
 let kiirus = 1;
 
 // Leiame kiiruse valiku HTML-ist.
@@ -51,6 +54,7 @@ const paevaLopuDialog = document.getElementById("day-end-dialog");
 let kellaKinnitus = null;
 let kellaKinnituseAeg = 0;
 
+// Mängupäev jaguneb 96 15-minutiliseks hinnaperioodiks.
 const PAEVA_PIKKUS_SEK = 180;
 const PERIOODI_PIKKUS_SEK = PAEVA_PIKKUS_SEK / 96;
 
