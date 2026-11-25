@@ -8,8 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nata+Sans:wght@100..900&display=swap">
     <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/stats.css">
     <link rel="stylesheet" href="css/interface.css">
+    <link rel="stylesheet" href="css/stats.css">
 
     <script src="js/interface.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
@@ -17,6 +17,62 @@
 </head>
 
 <body>
+    <svg class="icon-sprite" aria-hidden="true">
+        <symbol id="icon-buy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v11M7.5 9.5L12 14l4.5-4.5M4 16v4h16v-4"/>
+        </symbol>
+        <symbol id="icon-sell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 14V3M7.5 7.5L12 3l4.5 4.5M4 16v4h16v-4"/>
+        </symbol>
+        <symbol id="icon-battery-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="17" height="12" rx="2.5"/><path d="M22 10v4"/><path d="M5 9h2.5v6H5zM9.3 9h2.5v6H9.3zM13.5 9H16v6h-2.5z" fill="currentColor" stroke="none"/>
+        </symbol>
+        <symbol id="icon-battery-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="17" height="12" rx="2.5"/><path d="M22 10v4"/>
+        </symbol>
+        <symbol id="icon-bolt-minus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 2.5L3.5 13.5H9l-1 8 7.5-11.5h-6z"/><path d="M17 17.5h5"/>
+        </symbol>
+        <symbol id="icon-bolt-double" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.5 2.5L2.5 12.5H7l-1 9 6.5-11H8.5z"/><path d="M17.5 2.5l-6 10M14.5 14.5H16l-1 7 6.5-11h-4z"/>
+        </symbol>
+        <symbol id="icon-coin-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M15.3 8.8a4.6 4.6 0 1 0 0 6.4M6.6 10.8h6.4M6.6 13.2h6.4"/>
+        </symbol>
+        <symbol id="icon-coin-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9.5" cy="12" r="8"/><path d="M12.5 9.2a4.1 4.1 0 1 0 0 5.7M4.7 10.9h5.7M4.7 13.1h5.7"/><path d="M15.5 4.3a8 8 0 0 1 0 15.4"/>
+        </symbol>
+        <symbol id="icon-coin-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="12" r="7"/><path d="M10.6 9.5a3.6 3.6 0 1 0 0 5M3.8 11h5M3.8 13h5"/><path d="M13.2 5.2a7 7 0 0 1 0 13.6M17.4 5.2a7 7 0 0 1 0 13.6"/>
+        </symbol>
+        <symbol id="icon-swap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 8.5h17M16 4.5l4 4-4 4M21 15.5H4M8 11.5l-4 4 4 4"/>
+        </symbol>
+        <symbol id="icon-swap-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h15M16 3l3 3-3 3M20 13H5M8 10l-3 3 3 3"/><circle cx="12" cy="20" r="1.5" fill="currentColor" stroke="none"/>
+        </symbol>
+        <symbol id="icon-swap-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h15M16 3l3 3-3 3M20 13H5M8 10l-3 3 3 3"/><circle cx="9.5" cy="20" r="1.5" fill="currentColor" stroke="none"/><circle cx="14.5" cy="20" r="1.5" fill="currentColor" stroke="none"/>
+        </symbol>
+        <symbol id="icon-swap-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h15M16 3l3 3-3 3M20 13H5M8 10l-3 3 3 3"/><circle cx="7" cy="20" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="20" r="1.5" fill="currentColor" stroke="none"/><circle cx="17" cy="20" r="1.5" fill="currentColor" stroke="none"/>
+        </symbol>
+        <symbol id="icon-calendar-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 2.5V7M16 2.5V7"/><circle cx="7.5" cy="13.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="13.5" r="1.3" fill="currentColor" stroke="none"/>
+        </symbol>
+        <symbol id="icon-calendar-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 2.5V7M16 2.5V7"/><circle cx="7.5" cy="13.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="13.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.5" cy="13.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="7.5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="17.5" r="1.3" fill="currentColor" stroke="none"/><circle cx="16.5" cy="17.5" r="1.3" fill="currentColor" stroke="none"/>
+        </symbol>
+        <symbol id="icon-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18l6-6 4 4 8-9M15.5 7H21v5.5"/>
+        </symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 12.5l5 5 10-11"/>
+        </symbol>
+        <symbol id="icon-lock" viewBox="0 0 24 24" fill="currentColor">
+            <path fill-rule="evenodd" d="M6.5 10V7.5a5.5 5.5 0 0 1 11 0V10h.5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zM9 10h6V7.5a3 3 0 0 0-6 0zM12 13.5a1.6 1.6 0 0 0-.8 3V18.5h1.6V16.5a1.6 1.6 0 0 0-.8-3z"/>
+        </symbol>
+    </svg>
     <nav>
         <ul class="sidebar">
             <li class="sidebar-logo">
@@ -29,19 +85,19 @@
             </li>
             <li class="sidebar-item">
                 <a href="./index.html">
-                    <img src="img/nav-simulation-icon.svg" alt="simulation icon">
+                    <img src="img/nav-simulation-icon.svg" alt="">
                     <span>Simulatsioon</span>
                 </a>
             </li>
             <li class="sidebar-item">
                 <a href="./setup.html">
-                    <img src="img/nav-setup-icon.svg" alt="setup icon">
+                    <img src="img/nav-setup-icon.svg" alt="">
                     <span>Töölaud</span>
                 </a>
             </li>
             <li class="sidebar-item">
                 <a href="./stats.html">
-                <img src="img/nav-stats-icon.svg" alt="stats icon">
+                <img src="img/nav-stats-icon.svg" alt="">
                 <span>Statistika</span>
                 </a>
             </li>
@@ -62,209 +118,121 @@
             </div>
         </div>
 
+        <div class="stats-page">
+            <p id="stats-status" role="status">Laadin statistikat...</p>
 
-        <div class="simulation-page stats-page">
-
-            <div class="stats-header">
-                <div>
-                    <h2>Kauplemise ülevaade</h2>
-                    <p>Jälgi oma arengut ja kauplemistulemusi.</p>
+            <section class="stats-panel">
+                <div class="stats-toolbar">
+                    <div class="chart-buttons" role="group" aria-label="Graafiku valik">
+                        <button type="button" data-chart="asset-chart" aria-pressed="true">Varade väärtuse ajalugu</button>
+                        <button type="button" data-chart="profit-chart" aria-pressed="false">Kasum päevade kaupa</button>
+                    </div>
+                    <select id="stats-scope" aria-label="Statistikaperiood">
+                        <option value="all">Kogu ajalugu</option>
+                        <option value="game">Praegune mäng</option>
+                    </select>
                 </div>
+                <div class="stats-charts empty" id="stats-charts">
+                    <p class="stats-placeholder">Graafikute kuvamiseks lõpeta esimene mängupäev.</p>
+                    <div class="stats-chart">
+                        <canvas id="asset-chart"></canvas>
+                    </div>
+                    <div class="stats-chart" hidden>
+                        <canvas id="profit-chart"></canvas>
+                    </div>
+                </div>
+            </section>
 
-                <select id="stats-scope" aria-label="Statistikaperiood">
-                    <option value="all">Kogu mänguajalugu</option>
-                    <option value="game">Praegune mäng</option>
-                </select>
-            </div>
-
-            <p id="stats-status" role="status">
-                Laadin statistikat...
-            </p>
-
-            <!-- Peamised statistikanäitajad -->
             <div class="stats-grid">
-
                 <div class="stat-card">
                     <span>Kogukasum</span>
-                    <strong id="stat-profit">–</strong>
+                    <strong id="stat-profit">-</strong>
                 </div>
-
                 <div class="stat-card">
                     <span>Suurim vara väärtus</span>
-                    <strong id="stat-best-value">–</strong>
+                    <strong id="stat-best-value">-</strong>
                 </div>
-
                 <div class="stat-card">
                     <span>Tehinguid kokku</span>
-                    <strong id="stat-trades">–</strong>
+                    <strong id="stat-trades">-</strong>
                 </div>
-
                 <div class="stat-card">
                     <span>Mängitud päevi</span>
-                    <strong id="stat-days">–</strong>
+                    <strong id="stat-days">-</strong>
                 </div>
-
                 <div class="stat-card">
                     <span>Kasumlikud päevad</span>
-                    <strong id="stat-winrate">–</strong>
+                    <strong id="stat-winrate">-</strong>
                 </div>
-
                 <div class="stat-card">
                     <span>Mänguaeg</span>
-                    <strong id="stat-playtime">–</strong>
+                    <strong id="stat-playtime">-</strong>
                 </div>
-
             </div>
 
-            <!-- Graafikud -->
-            <section class="stats-panel">
+            <div class="stats-trade">
+                <section class="stats-panel sell">
+                    <h2 class="stats-title">MÜÜK</h2>
+                    <dl class="stats-details">
+                        <div><dt>Müügitehinguid</dt><dd id="stat-sell-count">-</dd></div>
+                        <div><dt>Müüdud elekter</dt><dd id="stat-energy-sold">-</dd></div>
+                        <div><dt>Kõrgeim hind</dt><dd id="stat-highest-sell">-</dd></div>
+                        <div><dt>Keskmine hind</dt><dd id="stat-average-sell">-</dd></div>
+                    </dl>
+                </section>
+                <section class="stats-panel">
+                    <h2 class="stats-title">PÄEVAD</h2>
+                    <dl class="stats-details">
+                        <div><dt>Parim päev</dt><dd id="stat-best-day">-</dd></div>
+                        <div><dt>Halvim päev</dt><dd id="stat-worst-day">-</dd></div>
+                        <div><dt>Pikim kasumiseeria</dt><dd id="stat-streak">-</dd></div>
+                        <div><dt>Alustatud mänge</dt><dd id="stat-games">-</dd></div>
+                    </dl>
+                </section>
+                <section class="stats-panel buy">
+                    <h2 class="stats-title">OST</h2>
+                    <dl class="stats-details">
+                        <div><dt>Ostutehinguid</dt><dd id="stat-buy-count">-</dd></div>
+                        <div><dt>Ostetud elekter</dt><dd id="stat-energy-bought">-</dd></div>
+                        <div><dt>Madalaim hind</dt><dd id="stat-lowest-buy">-</dd></div>
+                        <div><dt>Keskmine hind</dt><dd id="stat-average-buy">-</dd></div>
+                    </dl>
+                </section>
+            </div>
 
-                <h2>Varade väärtuse ajalugu</h2>
-
-                <div class="stats-chart">
-                    <canvas id="asset-chart"></canvas>
-                </div>
-
-            </section>
-
-            <section class="stats-panel">
-
-                <h2>Kasum päevade kaupa</h2>
-
-                <div class="stats-chart">
-                    <canvas id="profit-chart"></canvas>
-                </div>
-
-            </section>
-
-            <!-- Detailne statistika -->
-            <section class="stats-panel">
-
-                <h2>Kauplemisstatistika</h2>
-
-                <div class="stats-details">
-
-                    <div>
-                        <span>Ostutehinguid</span>
-                        <strong id="stat-buy-count">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Müügitehinguid</span>
-                        <strong id="stat-sell-count">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Ostetud elekter</span>
-                        <strong id="stat-energy-bought">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Müüdud elekter</span>
-                        <strong id="stat-energy-sold">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Madalaim ostuhind</span>
-                        <strong id="stat-lowest-buy">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Kõrgeim müügihind</span>
-                        <strong id="stat-highest-sell">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Keskmine ostuhind</span>
-                        <strong id="stat-average-buy">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Keskmine müügihind</span>
-                        <strong id="stat-average-sell">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Parim päev</span>
-                        <strong id="stat-best-day">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Halvim päev</span>
-                        <strong id="stat-worst-day">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Pikim kasumlike päevade seeria</span>
-                        <strong id="stat-streak">–</strong>
-                    </div>
-
-                    <div>
-                        <span>Alustatud mänge</span>
-                        <strong id="stat-games">–</strong>
-                    </div>
-
-                </div>
-
-            </section>
-
-            <!-- Achievements -->
-            <section class="stats-panel">
-
+            <section class="stats-panel stats-section">
                 <div class="stats-section-header">
-                    <div>
-                        <h2>Achievements</h2>
-                        <p>Kogu mänguajaloo jooksul avatud saavutused.</p>
-                    </div>
-
+                    <h2 class="stats-heading">
+                        Saavutused
+                        <img src="img/nav-stats-icon.svg" alt="">
+                    </h2>
                     <strong id="achievement-count">0 / 15</strong>
                 </div>
-
-                <progress
-                    id="achievement-total-progress"
-                    value="0"
-                    max="100">
-                </progress>
-
-                <div id="achievements-grid"
-                    class="achievements-grid">
-                </div>
-
+                <div class="achievement-battery" id="achievement-battery" aria-hidden="true"></div>
             </section>
+            <div class="achievements-grid" id="achievements-grid"></div>
 
-            <!-- Tehingute ajalugu -->
-            <section class="stats-panel">
-
-                <div class="stats-section-header">
-                    <h2>Tehingute ajalugu</h2>
-                    <span>Viimased 100 tehingut</span>
-                </div>
-
-                <div class="stats-table-wrapper">
-
-                    <table class="stats-table">
-
-                        <thead>
-                            <tr>
-                                <th>Mäng</th>
-                                <th>Päev</th>
-                                <th>Aeg</th>
-                                <th>Tegevus</th>
-                                <th>Kogus</th>
-                                <th>Hind</th>
-                                <th>Raha muutus</th>
-                            </tr>
-                        </thead>
-
-                        <tbody id="transactions-body">
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </section>
-
+            <div class="stats-section-header stats-section">
+                <h2 class="stats-heading">
+                    Tehingute ajalugu
+                    <svg aria-hidden="true"><use href="#icon-swap"/></svg>
+                </h2>
+            </div>
+            <div class="stats-table-wrapper" tabindex="0" role="region" aria-label="Viimased 100 tehingut">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Päev</th>
+                            <th>Aeg</th>
+                            <th>Tegevus</th>
+                            <th>Kogus</th>
+                            <th>Hind</th>
+                            <th>Raha muutus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-body"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="right-interface"> 

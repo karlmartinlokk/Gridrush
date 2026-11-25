@@ -255,13 +255,3 @@
     align-items: center;
     gap: 0.35rem;
 }
-
-/* Päevade loendur */
-#day-count {
-    color: var(--color-text-primary);
-    font-size: 0.875rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-}
-

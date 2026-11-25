@@ -14,21 +14,26 @@ const arv = (vaartus, komakohad = 0) =>
     });
 
 const euro = vaartus =>
-    vaartus == null ? "–" : `${arv(vaartus, 2)} €`;
+    vaartus == null ? "-" : `${arv(vaartus, 2)} €`;
+
+const vormindaArv = vaartus =>
+    Number(vaartus).toLocaleString("et-EE", {
+        maximumFractionDigits: 2
+    });
 
 const energia = vaartus =>
     `${arv(vaartus, 2)} MWh`;
 
 const elektrihind = vaartus =>
     vaartus == null
-        ? "–"
+        ? "-"
         : `${arv(vaartus, 2)} €/MWh`;
 
 
 // Vormindab positiivsed ja negatiivsed rahasummad.
 
 function margigaEuro(vaartus) {
-    if (vaartus == null) return "–";
+    if (vaartus == null) return "-";
 
     return `${vaartus > 0 ? "+" : ""}${euro(vaartus)}`;
 }
@@ -60,18 +65,24 @@ function kuvaVaartus(id, vaartus) {
 
 // Värvib kasumi ja kahjumi.
 
-function kuvaKasum(id, vaartus) {
+function kasumiKlass(vaartus) {
+    if (vaartus > 0) return "stats-positive";
+    if (vaartus < 0) return "stats-negative";
+
+    return "";
+}
+
+
+function kuvaKasum(id, summa) {
     const element = leia(id);
 
+    // Ümardamisviga ei tohi nulli värvida.
+    const vaartus = summa == null
+        ? null
+        : Math.round(summa * 100) / 100 || 0;
+
     element.textContent = margigaEuro(vaartus);
-
-    element.classList.toggle(
-        "stats-positive", vaartus > 0
-    );
-
-    element.classList.toggle(
-        "stats-negative", vaartus < 0
-    );
+    element.className = kasumiKlass(vaartus);
 }
 
 
@@ -83,7 +94,7 @@ function kuvaStatistika(s) {
 
     kuvaVaartus(
         "stat-best-value",
-        s.games_started ? euro(s.best_value) : "–"
+        s.games_started ? euro(s.best_value) : "-"
     );
 
     kuvaVaartus(
@@ -98,7 +109,7 @@ function kuvaStatistika(s) {
         "stat-winrate",
         s.days_played
             ? `${arv(s.profitable_days_percent, 1)}%`
-            : "–"
+            : "-"
     );
 
     kuvaVaartus(
@@ -137,7 +148,10 @@ function kuvaStatistika(s) {
     kuvaKasum("stat-worst-day", s.worst_day);
 
     kuvaVaartus(
-        "stat-streak", `${s.longest_streak} päeva`
+        "stat-streak",
+        `${s.longest_streak} ${
+            s.longest_streak === 1 ? "päev" : "päeva"
+        }`
     );
 
     kuvaVaartus(
@@ -148,12 +162,27 @@ function kuvaStatistika(s) {
 
 // GRAAFIKUD
 
+function cssVarv(nimi) {
+    return getComputedStyle(document.documentElement)
+        .getPropertyValue(nimi)
+        .trim();
+}
+
+
 function graafikuSeaded() {
+    const tekst = cssVarv("--color-text-secondary");
+    const joon = cssVarv("--color-border");
 
     return {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+
+        interaction: {
+            mode: "nearest",
+            axis: "x",
+            intersect: false
+        },
 
         plugins: {
             legend: {
@@ -161,18 +190,27 @@ function graafikuSeaded() {
             },
 
             tooltip: {
-                callbacks: {
-                    label: punkt =>
-                        euro(punkt.parsed.y)
-                }
+                displayColors: false,
+                padding: 10,
+                backgroundColor: cssVarv("--color-bg-secondary"),
+                borderColor: joon,
+                borderWidth: 1,
+                titleColor: tekst,
+                bodyColor: cssVarv("--color-text-primary"),
+                callbacks: {}
             }
         },
 
         scales: {
             x: {
+                border: {
+                    color: joon
+                },
                 ticks: {
-                    color: "#9ba5af",
-                    maxTicksLimit: 8
+                    color: tekst,
+                    maxTicksLimit: 10,
+                    maxRotation: 0,
+                    autoSkipPadding: 24
                 },
                 grid: {
                     display: false
@@ -180,12 +218,17 @@ function graafikuSeaded() {
             },
 
             y: {
+                border: {
+                    display: false
+                },
                 ticks: {
-                    color: "#9ba5af",
-                    callback: vaartus => `${vaartus} €`
+                    color: tekst,
+                    maxTicksLimit: 5,
+                    callback: vaartus =>
+                        `${vormindaArv(vaartus)} €`
                 },
                 grid: {
-                    color: "rgba(255,255,255,0.06)"
+                    color: joon
                 }
             }
         }
@@ -193,112 +236,183 @@ function graafikuSeaded() {
 }
 
 
-function kuvaGraafikud(paevad) {
+// Iga mäng on graafikul eraldi joon, mis algab mängu algsummast.
 
-    if (typeof Chart === "undefined") return;
-
-    const sildid = [];
-    const varad = [];
-    const kasumid = [];
-
+function leiaManguJooned(paevad, algus) {
+    const jooned = [];
     let eelmineMang = null;
 
-    for (const paev of paevad) {
-
-        // Katkestame joone erinevate mängude vahel.
-        if (
-            eelmineMang !== null &&
-            eelmineMang !== paev.game_id
-        ) {
-            sildid.push("");
-            varad.push(null);
-            kasumid.push(null);
+    paevad.forEach((paev, i) => {
+        if (paev.game_id !== eelmineMang) {
+            jooned.push([{ x: algus + i, y: paev.start_value }]);
+            eelmineMang = paev.game_id;
         }
 
-        const silt = leia("stats-scope").value === "all"
-            ? `#${paev.game_id} / P${paev.day_number}`
-            : `Päev ${paev.day_number}`;
+        jooned.at(-1).push({ x: algus + i + 1, y: paev.end_value });
+    });
 
-        sildid.push(silt);
-        varad.push(paev.end_value);
-        kasumid.push(paev.profit);
-
-        eelmineMang = paev.game_id;
-    }
-
-    const varaAndmed = {
-        labels: sildid,
-        datasets: [{
-            data: varad,
-            borderColor: "#6CCBB8",
-            backgroundColor: "rgba(108,203,184,0.08)",
-            borderWidth: 2,
-            tension: 0.2,
-            pointRadius: 2,
-            spanGaps: false,
-            fill: true
-        }]
-    };
-
-    const kasumiAndmed = {
-        labels: sildid,
-        datasets: [{
-            data: kasumid,
-            backgroundColor: kasumid.map(
-                k => k >= 0 ? "#6CCBB8" : "#E06B60"
-            ),
-            borderRadius: 3
-        }]
-    };
-
-    if (varaGraafik === null) {
-
-        varaGraafik = new Chart(leia("asset-chart"), {
-            type: "line",
-            data: varaAndmed,
-            options: graafikuSeaded()
-        });
-
-    } else {
-
-        varaGraafik.data = varaAndmed;
-        varaGraafik.update("none");
-    }
-
-    if (kasumiGraafik === null) {
-
-        kasumiGraafik = new Chart(leia("profit-chart"), {
-            type: "bar",
-            data: kasumiAndmed,
-            options: graafikuSeaded()
-        });
-
-    } else {
-
-        kasumiGraafik.data = kasumiAndmed;
-        kasumiGraafik.update("none");
-    }
+    return jooned;
 }
 
 
-// ACHIEVEMENTS
+function looVaraGraafik(paevad, algus) {
+    const roheline = cssVarv("--color-charging");
+    const seaded = graafikuSeaded();
+
+    seaded.scales.x.type = "linear";
+    seaded.scales.x.min = algus;
+    seaded.scales.x.max = algus + paevad.length;
+    seaded.scales.x.ticks.precision = 0;
+
+    seaded.plugins.tooltip.callbacks = {
+        title: valitud => `Päev ${valitud[0].parsed.x}`,
+        label: punkt => {
+            const nimi = punkt.dataIndex === 0
+                ? "Mängu algus"
+                : "Vara väärtus";
+
+            return `${nimi}: ${euro(punkt.parsed.y)}`;
+        }
+    };
+
+    return {
+        type: "line",
+        options: seaded,
+        data: {
+            datasets: leiaManguJooned(paevad, algus).map(joon => ({
+                data: joon,
+                clip: 8,
+                borderColor: roheline,
+                borderWidth: 2,
+                backgroundColor: "rgba(108, 203, 184, 0.1)",
+                fill: "start",
+                pointBackgroundColor: roheline,
+                pointRadius: 2,
+                pointHoverRadius: 5
+            }))
+        }
+    };
+}
+
+
+function looKasumiGraafik(paevad, algus) {
+    const seaded = graafikuSeaded();
+
+    seaded.interaction.mode = "index";
+
+    seaded.plugins.tooltip.callbacks = {
+        title: valitud => `Päev ${valitud[0].label}`,
+        label: punkt => `Kasum: ${margigaEuro(punkt.parsed.y)}`
+    };
+
+    // Vähemalt viis kohta, et üks päev ei täidaks tervet graafikut.
+    const kohti = Math.max(paevad.length, 5);
+
+    const varvid = (kasum, kahjum) => paevad.map(
+        paev => paev.profit < 0 ? kahjum : kasum
+    );
+
+    return {
+        type: "bar",
+        options: seaded,
+        data: {
+            labels: Array.from({ length: kohti }, (_, i) =>
+                i < paevad.length ? algus + i + 1 : ""
+            ),
+            datasets: [{
+                data: paevad.map(paev => paev.profit),
+                backgroundColor: varvid(
+                    "rgba(108, 203, 184, 0.3)",
+                    "rgba(255, 60, 34, 0.3)"
+                ),
+                hoverBackgroundColor: varvid(
+                    "rgba(108, 203, 184, 0.5)",
+                    "rgba(255, 60, 34, 0.5)"
+                ),
+                borderColor: varvid(
+                    cssVarv("--color-charging"),
+                    cssVarv("--color-loss")
+                ),
+                borderWidth: { top: 2, bottom: 2, left: 0, right: 0 },
+                borderRadius: 3,
+                categoryPercentage: 1,
+                barPercentage: 0.96,
+                minBarLength: 2
+            }]
+        }
+    };
+}
+
+
+function uuendaGraafik(graafik, id, seaded) {
+    if (graafik === null) {
+        return new Chart(leia(id), seaded);
+    }
+
+    graafik.data = seaded.data;
+    graafik.options = seaded.options;
+    graafik.update("none");
+
+    return graafik;
+}
+
+
+function kuvaGraafikud(s) {
+    const paevad = s.daily_history;
+
+    leia("stats-charts").classList.toggle(
+        "empty", paevad.length === 0
+    );
+
+    if (typeof Chart === "undefined" || paevad.length === 0) return;
+
+    // Server saadab ainult viimased päevad, varasemad loeme juurde.
+    const algus = s.days_played - paevad.length;
+
+    varaGraafik = uuendaGraafik(
+        varaGraafik,
+        "asset-chart",
+        looVaraGraafik(paevad, algus)
+    );
+
+    kasumiGraafik = uuendaGraafik(
+        kasumiGraafik,
+        "profit-chart",
+        looKasumiGraafik(paevad, algus)
+    );
+}
+
+
+function valiGraafik(event) {
+    const valitud = event.currentTarget.dataset.chart;
+
+    document.querySelectorAll(".chart-buttons button").forEach(nupp => {
+        const id = nupp.dataset.chart;
+
+        nupp.setAttribute("aria-pressed", String(id === valitud));
+        leia(id).parentElement.hidden = id !== valitud;
+    });
+}
+
+
+// SAAVUTUSED
 
 const achievementIcons = {
-    first_buy: "↓",
-    first_sell: "↑",
-    full_battery: "▰",
-    empty_battery: "▱",
-    negative_price: "⚡",
-    double_money: "2×",
-    power_trader: "€",
-    energy_baron: "♛",
-    trades_10: "10",
-    trades_100: "100",
-    trades_1000: "★",
-    energy_100: "⚡",
-    days_10: "10",
-    days_30: "30",
-    streak_5: "↗"
+    first_buy: "buy",
+    first_sell: "sell",
+    full_battery: "battery-full",
+    empty_battery: "battery-empty",
+    negative_price: "bolt-minus",
+    double_money: "coin-1",
+    power_trader: "coin-2",
+    energy_baron: "coin-3",
+    trades_10: "swap-1",
+    trades_100: "swap-2",
+    trades_1000: "swap-3",
+    energy_100: "bolt-double",
+    days_10: "calendar-1",
+    days_30: "calendar-2",
+    streak_5: "trend"
 };
 
 
@@ -312,11 +426,22 @@ function looElement(tag, klass, tekst) {
 }
 
 
+function looIkoon(nimi, klass) {
+    const svgNimeruum = "http://www.w3.org/2000/svg";
+    const ikoon = document.createElementNS(svgNimeruum, "svg");
+    const viide = document.createElementNS(svgNimeruum, "use");
+
+    ikoon.setAttribute("class", klass);
+    ikoon.setAttribute("aria-hidden", "true");
+    viide.setAttribute("href", `#icon-${nimi}`);
+
+    ikoon.append(viide);
+
+    return ikoon;
+}
+
+
 function kuvaSaavutused(saavutused) {
-
-    const konteiner = leia("achievements-grid");
-
-    konteiner.replaceChildren();
 
     const avatud = saavutused.filter(
         a => a.unlocked
@@ -327,12 +452,13 @@ function kuvaSaavutused(saavutused) {
         `${avatud} / ${saavutused.length}`
     );
 
-    leia("achievement-total-progress").value =
-        saavutused.length
-            ? avatud / saavutused.length * 100
-            : 0;
+    leia("achievement-battery").replaceChildren(
+        ...saavutused.map((saavutus, i) =>
+            looElement("span", i < avatud ? "filled" : "")
+        )
+    );
 
-    for (const saavutus of saavutused) {
+    const kaardid = saavutused.map(saavutus => {
 
         const kaart = looElement(
             "article",
@@ -341,37 +467,23 @@ function kuvaSaavutused(saavutused) {
             }`
         );
 
-        const ylaosa = looElement(
-            "div", "achievement-top"
+        kaart.append(
+            looElement("h3", "achievement-name", saavutus.name),
+            looElement(
+                "div",
+                "achievement-description",
+                saavutus.description
+            ),
+            looIkoon(
+                achievementIcons[saavutus.id] || "trend",
+                "achievement-icon"
+            )
         );
 
-        const ikoon = looElement(
-            "span",
-            "achievement-icon",
-            achievementIcons[saavutus.id] || "★"
-        );
-
-        const olek = looElement(
-            "span",
-            saavutus.unlocked
-                ? "stats-positive"
-                : "achievement-progress",
-            saavutus.unlocked ? "✓ Avatud" : "Lukus"
-        );
-
-        ylaosa.append(ikoon, olek);
-
-        const nimi = looElement(
-            "h3",
-            "achievement-name",
-            saavutus.name
-        );
-
-        const kirjeldus = looElement(
-            "div",
-            "achievement-description",
-            saavutus.description
-        );
+        if (saavutus.unlocked) {
+            kaart.append(looIkoon("check", "achievement-check"));
+            return kaart;
+        }
 
         const progress = document.createElement("progress");
 
@@ -382,24 +494,22 @@ function kuvaSaavutused(saavutused) {
             "aria-label", saavutus.name
         );
 
-        const edenemine = looElement(
-            "div",
-            "achievement-progress",
-            `${arv(saavutus.current, 2)} / ${
-                arv(saavutus.target, 2)
-            }`
-        );
-
         kaart.append(
-            ylaosa,
-            nimi,
-            kirjeldus,
+            looElement(
+                "div",
+                "achievement-progress",
+                `${vormindaArv(saavutus.current)} / ${
+                    vormindaArv(saavutus.target)
+                }`
+            ),
             progress,
-            edenemine
+            looIkoon("lock", "achievement-lock")
         );
 
-        konteiner.append(kaart);
-    }
+        return kaart;
+    });
+
+    leia("achievements-grid").replaceChildren(...kaardid);
 }
 
 
@@ -408,7 +518,7 @@ function kuvaSaavutused(saavutused) {
 const ajaVorming = new Intl.DateTimeFormat("et-EE", {
     timeZone: "Europe/Tallinn",
     dateStyle: "short",
-    timeStyle: "short"
+    timeStyle: "medium"
 });
 
 
@@ -420,11 +530,10 @@ function kuvaTehingud(tehingud) {
 
     if (tehingud.length === 0) {
 
-        const rida = document.createElement("tr");
-        const lahter = document.createElement("td");
+        const rida = looElement("tr");
+        const lahter = looElement("td", "", "Tehinguid pole veel tehtud.");
 
-        lahter.colSpan = 7;
-        lahter.textContent = "Tehinguid pole veel tehtud.";
+        lahter.colSpan = 6;
 
         rida.append(lahter);
         tbody.append(rida);
@@ -434,39 +543,27 @@ function kuvaTehingud(tehingud) {
 
     for (const t of tehingud) {
 
-        const rida = document.createElement("tr");
+        const rida = looElement("tr");
+        const tegevus = looElement("td");
 
-        const vaartused = [
-            `#${t.game_id}`,
-            t.day_number,
-            ajaVorming.format(
-                new Date(t.market_timestamp * 1000)
-            ),
-            t.action === "buy" ? "Ost" : "Müük",
-            energia(t.quantity),
-            elektrihind(t.price),
-            margigaEuro(t.cash_change)
-        ];
+        tegevus.append(looElement(
+            "span",
+            `trade-badge ${t.action}`,
+            t.action === "buy" ? "Ost" : "Müük"
+        ));
 
-        vaartused.forEach((vaartus, indeks) => {
-
-            const lahter = document.createElement("td");
-
-            lahter.textContent = vaartus;
-
-            if (indeks === 6) {
-
-                if (t.cash_change > 0) {
-                    lahter.className = "stats-positive";
-                }
-
-                if (t.cash_change < 0) {
-                    lahter.className = "stats-negative";
-                }
-            }
-
-            rida.append(lahter);
-        });
+        rida.append(
+            looElement("td", "", t.day_number),
+            looElement("td", "", ajaVorming.format(t.created_at * 1000)),
+            tegevus,
+            looElement("td", "", energia(t.quantity)),
+            looElement("td", "", elektrihind(t.price)),
+            looElement(
+                "td",
+                kasumiKlass(t.cash_change),
+                margigaEuro(t.cash_change)
+            )
+        );
 
         tbody.append(rida);
     }
@@ -499,27 +596,11 @@ async function laadiStatistika() {
         if (number !== paringuNumber) return;
 
         kuvaStatistika(andmed.stats);
-        kuvaGraafikud(andmed.stats.daily_history);
+        kuvaGraafikud(andmed.stats);
         kuvaSaavutused(andmed.achievements);
         kuvaTehingud(andmed.stats.transactions);
 
-        if (!andmed.stats.games_started) {
-
-            kuvaVaartus(
-                "stats-status",
-                "Valitud perioodil pole veel mänguajalugu."
-            );
-
-        } else if (!andmed.stats.days_played) {
-
-            kuvaVaartus(
-                "stats-status",
-                "Graafikute kuvamiseks lõpeta esimene mängupäev."
-            );
-
-        } else {
-            kuvaVaartus("stats-status", "");
-        }
+        kuvaVaartus("stats-status", "");
 
     } catch (viga) {
 
@@ -534,11 +615,20 @@ async function laadiStatistika() {
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    laadiStatistika();
+    if (typeof Chart !== "undefined") {
+        Chart.defaults.font.family = '"Nata Sans", sans-serif';
+    }
+
+    // Graafik mõõdab silte õigesti alles siis, kui font on laetud.
+    document.fonts.load('12px "Nata Sans"').finally(laadiStatistika);
 
     leia("stats-scope").addEventListener(
         "change", laadiStatistika
     );
+
+    document.querySelectorAll(".chart-buttons button").forEach(nupp => {
+        nupp.addEventListener("click", valiGraafik);
+    });
 
     // Uuendame statistikat iga viie sekundi järel.
     setInterval(() => {

@@ -253,7 +253,8 @@ def loe_statistika(player_id, game_id=None):
         """, parameetrid).fetchone()
 
         paevad = db.execute(f"""
-            SELECT d.*
+            SELECT d.game_id, d.day_number,
+                d.start_value, d.end_value, d.profit
             FROM daily_stats d
             JOIN games g ON g.id = d.game_id
             WHERE {tingimus}
@@ -261,7 +262,9 @@ def loe_statistika(player_id, game_id=None):
         """, parameetrid).fetchall()
 
         ajalugu = db.execute(f"""
-            SELECT t.*
+            SELECT t.day_number, t.action,
+                t.quantity, t.price, t.cash_change,
+                strftime('%s', t.created_at) AS created_at
             FROM transactions t
             JOIN games g ON g.id = t.game_id
             WHERE {tingimus}
