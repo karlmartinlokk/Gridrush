@@ -82,7 +82,9 @@ async function laadiParemPaneel() {
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    kontrolliSaavutusi();
+    if (typeof laadiStatistika !== 'function') {
+        kontrolliSaavutusi();
+    }
 
     if (window.kauplemine) return;
 
@@ -193,6 +195,20 @@ function salvestaTeadaolevad(tunnused) {
 }
 
 
+function kasitleSaavutusi(saavutused) {
+    const avatud = saavutused.filter(a => a.unlocked);
+    const teada = loeTeadaolevad();
+
+    if (Array.isArray(teada)) {
+        avatud
+            .filter(a => !teada.includes(a.id))
+            .forEach(naitaSaavutust);
+    }
+
+    salvestaTeadaolevad(avatud.map(a => a.id));
+}
+
+
 async function kontrolliSaavutusi() {
     try {
         const vastus = await fetch('/api/stats?scope=all', { cache: 'no-store' });
@@ -200,15 +216,6 @@ async function kontrolliSaavutusi() {
         if (!vastus.ok) return;
 
         const andmed = await vastus.json();
-        const avatud = andmed.achievements.filter(a => a.unlocked);
-        const teada = loeTeadaolevad();
-
-        if (Array.isArray(teada)) {
-            avatud
-                .filter(a => !teada.includes(a.id))
-                .forEach(naitaSaavutust);
-        }
-
-        salvestaTeadaolevad(avatud.map(a => a.id));
+        kasitleSaavutusi(andmed.achievements);
     } catch {}
 }

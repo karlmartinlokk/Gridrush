@@ -564,6 +564,7 @@ async function laadiStatistika() {
         kuvaStatistika(andmed.stats);
         kuvaGraafikud(andmed.stats);
         kuvaSaavutused(andmed.achievements);
+        kasitleSaavutusi(andmed.achievements);
         kuvaTehingud(andmed.stats.transactions);
 
         kuvaVaartus("stats-status", "");

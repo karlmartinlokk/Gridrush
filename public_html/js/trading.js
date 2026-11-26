@@ -126,11 +126,10 @@ async function kauplemiseAPI(aadress, andmed = {}) {
         }
 
         if (
-            (aadress === '/api/demo/trade' ||
-            aadress === '/api/demo/next-day') &&
-            typeof kontrolliSaavutusi === 'function'
+            tulemus.achievements &&
+            typeof kasitleSaavutusi === 'function'
         ) {
-            kontrolliSaavutusi();
+            kasitleSaavutusi(tulemus.achievements);
         }
 
         return tulemus;

@@ -394,6 +394,11 @@ class Handler(SimpleHTTPRequestHandler):
                 else:
                     tulemus = mang.uus_paev()
 
+                if aadress in ("/api/demo/trade", "/api/demo/next-day"):
+                    tulemus["achievements"] = loe_saavutused(
+                        loe_statistika(mang.player_id)
+                    )
+
             self.saada_json(200, tulemus)
 
         except (ValueError, UnicodeDecodeError) as viga:
