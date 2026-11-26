@@ -1,9 +1,3 @@
-# GRIDRUSH-DOC: moodul
-# HINDADE HALDUSSKRIPT: täiendab SQLite'i Eleringi ajalooliste hindadega.
-# Käsud: start (esmahooldus), backfill (ajalugu), update (hiljutised päevad),
-# day YYYY-MM-DD (üks päev), status (andmebaasi kokkuvõte).
-# Korduv laadimine on idempotentne ja mittetäielikud päevad tuvastatakse.
-
 import random
 import sys
 import time
@@ -19,22 +13,12 @@ from gridrush.fetch_day import fetch_day
 ALGUS = date(2025, 10, 2)
 
 # Kontrollib, kas päevas on tavapärased 96 hinnaperioodi
-# GRIDRUSH-DOC: def sobiv_paev
-# Kontrollib, et Eesti päeva UTC-kestus sisaldaks täpselt 96 veerandtundi.
-# Suve- ja talveajale üleminekul ei ole kõik päevad 24 tundi pikad.
-# Tagastab booli; eripikkusega päevad jäetakse mängu andmestikust välja.
 def sobiv_paev(paev):
     algus, lopp = paeva_piirid(paev)
 
     return int((lopp.timestamp() - algus.timestamp()) / 900) == 96
 
 
-# Kontrollib, kas kõik 96 hinnakirjet on andmebaasis olemas
-# GRIDRUSH-DOC: def taielik_paev
-# Kontrollib, et antud päeva andmestik sisaldaks kõik 96 täpset ajatemplit.
-# Esmalt välistab kellakeeramise päevad, seejärel võrdleb hulkasid.
-# Ainult 96 kirje arvust ei piisa: ka ajatemplite asukohad peavad õiged olema.
-# Tagastab True, kui päeva saab kasutada, muidu False.
 def taielik_paev(paev, hinnad):
     if not sobiv_paev(paev):
         return False
@@ -52,30 +36,20 @@ def taielik_paev(paev, hinnad):
     return olemas == oodatud
 
 
-# Laeb valitud päeva hinnad andmebaasi
-# GRIDRUSH-DOC: def laadi_paev
-# Tagab valitud päeva hinnaandmete olemasolu SQLite'is.
-# Kui täielik päev on juba salvestatud, ei tehta võrgu- ega kirjutuspäringut.
-# Puuduliku päeva korral küsitakse andmed Eleringilt ja tehakse INSERT OR IGNORE.
-# Eripika päeva korral tagastatakse [] ilma välise päringuta.
-# Tagastab lõpuks andmebaasist uuesti loetud päeva hinnakirjed.
 def laadi_paev(paev):
     if isinstance(paev, str):
         paev = date.fromisoformat(paev)
 
-    # Jätame kellakeeramise päevad vahele
     if not sobiv_paev(paev):
         print(f"{paev}: kellakeeramise päev, jätame vahele.")
         return []
 
-    # Kontrollime, kas hinnad on juba andmebaasis
     olemas = loe_paev(paev)
 
     if taielik_paev(paev, olemas):
         print(f"{paev}: hinnad juba andmebaasis.")
         return olemas
 
-    # Puuduvate andmete korral küsime hinnad Eleringilt
     hinnad = fetch_day(paev)
     lisatud = salvesta_hinnad(hinnad)
 
@@ -84,23 +58,15 @@ def laadi_paev(paev):
 
 
 # Kontrollib viimase kolme lõppenud päeva hindu
-# GRIDRUSH-DOC: def uuenda
-# Kontrollib Eesti kohaliku kuupäeva põhjal kolme viimast lõppenud päeva.
-# Täna on pooleli, seetõttu vaadatakse päevad -3, -2 ja -1.
-# Juba täielikke päevi ei laeta uuesti; puuduvad küsitakse Eleringilt.
-# Edukate väliste päringute vahel tehakse 5-sekundiline paus.
-# Võrgu- või vorminguviga katkestab selle uuendusringi.
 def uuenda():
     tana = datetime.now(EESTI_AEG).date()
 
     for vahe in (-3, -2, -1):
         paev = tana + timedelta(days=vahe)
 
-        # Kellakeeramise päevi ei lae
         if not sobiv_paev(paev):
             continue
 
-        # Juba salvestatud päevi uuesti ei küsi
         if taielik_paev(paev, loe_paev(paev)):
             continue
 
@@ -113,12 +79,6 @@ def uuenda():
             break
 
 # Laeb kõik puuduvad elektrihinnad alates ALGUS kuupäevast
-# GRIDRUSH-DOC: def backfill
-# Laeb kronoloogiliselt kõik puuduvad päevad alates 02.10.2025.
-# Iga päev valideeritakse enne võrku minemist, et vältida duplikaattööd.
-# Ebaõnnestunud päevad kogutakse loendisse, kuid teisi päevi proovitakse edasi.
-# Pärast iga laadimiskatset tehakse 5-sekundiline paus API koormuse piiramiseks.
-# Lõpus kuvatakse kokkuvõte; funktsioon ei tagasta vigaste päevade loendit.
 def backfill():
     tana = datetime.now(EESTI_AEG).date()
     vigased_paevad = []
@@ -126,11 +86,9 @@ def backfill():
     for i in range((tana - ALGUS).days, 0, -1):
         paev = tana - timedelta(days=i)
 
-        # Kellakeeramise päevi ei lae
         if not sobiv_paev(paev):
             continue
 
-        # Kontrollime, kas päev on juba täielikult olemas
         try:
             if taielik_paev(paev, loe_paev(paev)):
                 continue
@@ -139,7 +97,6 @@ def backfill():
             vigased_paevad.append(paev)
             continue
 
-        # Proovime puuduvad hinnad laadida
         try:
             laadi_paev(paev)
 
@@ -151,17 +108,11 @@ def backfill():
             # Ootame ka siis, kui laadimisel tekkis viga
             time.sleep(5)
 
-    # Kokkuvõte
     if vigased_paevad:
         print(f"Andmete laadimise katse lõpetatud. Vigaseid päevi: {len(vigased_paevad)}")
     else:
         print("Andmete laadimine lõpetatud.")
 
-# Esmane andmete laadimine ja uuendamine
-# GRIDRUSH-DOC: def alusta
-# Käivitab esialgse andmesünkroonimise.
-# Tühja tabeli korral valib juhusliku sobiva ajaloolise päeva, et mäng saaks alata.
-# Seejärel kutsub uuenda(), et viimased lõppenud päevad oleksid olemas.
 def alusta():
     kogus, _ = statistika()
 
@@ -183,11 +134,6 @@ def alusta():
     uuenda()
 
 
-# Kuvab andmebaasi statistika
-# GRIDRUSH-DOC: def naita_seisu
-# Väljastab terminalis tabeli kirjete arvu, uusima ning vanima aja.
-# statistika() ja vanim_hind() loevad andmed SQLite'ist.
-# Hindu ei muudeta; tegemist on ainult diagnostilise käsuga.
 def naita_seisu():
     kogus, viimane = statistika()
 
@@ -208,7 +154,6 @@ def naita_seisu():
         print("Hind:", hind, "€/MWh")
 
 
-# Käskude valimine terminalist
 if __name__ == "__main__":
     kask = sys.argv[1] if len(sys.argv) > 1 else "start"
 

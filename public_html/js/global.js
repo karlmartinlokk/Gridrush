@@ -1,9 +1,14 @@
+// Simulatsiooni, seadistuse ja statistika lehe ühine kood: parempoolne paneel (raha, kasum, aku) ja saavutuste teavitused.
+// Autor: Karl-Martin Lokk
+
+// Kuvab mänguseisu parempoolses paneelis. Kui mängu pole alustatud, on s null.
 function kuvaParemPaneel(s) {
     const leiaElement = valija => document.querySelector(valija);
     const eurodes = arv => arv.toLocaleString('et-EE', {
         minimumFractionDigits: 2, maximumFractionDigits: 2
     });
 
+    // Rahajääk ja aku täituvus
     leiaElement('.ri-money-sum span').textContent =
         s ? `${eurodes(s.balance)} €` : '- €';
 
@@ -13,6 +18,7 @@ function kuvaParemPaneel(s) {
     leiaElement('.battery-capacity').textContent =
         s ? `${s.energy} / ${s.capacity} MWh` : '0 / 10 MWh';
 
+    // Täis aku täidise laius SVG-s on 184 ühikut.
     leiaElement('#battery-fill').setAttribute(
         'width', s ? 184 * s.energy / s.capacity : 0
     );
@@ -29,6 +35,7 @@ function kuvaParemPaneel(s) {
     muutusElement.textContent =
         `${muutus > 0 ? '+' : ''}${muutus.toFixed(1)}%`;
 
+    // Värv näitab, kas mängija on kasumis, kahjumis või nullis.
     if (muutus > 0) {
         muutusElement.style.color = 'var(--color-charging)';
     } else if (muutus < 0) {
@@ -39,6 +46,7 @@ function kuvaParemPaneel(s) {
 }
 
 
+// Kuvab mängupäeva numbri lehtedel, kus päevaloendur on olemas.
 function kuvaPaevadeLoendur(s) {
     const loendur = document.getElementById('day-count');
     if (!loendur) return;
@@ -50,17 +58,20 @@ function kuvaPaevadeLoendur(s) {
 }
 
 
+// Kuvab seadistuse lehel aku laetuse püstise tulbana.
 function kuvaSeadistuseLaetus(s) {
     const taide = document.getElementById('setup-charge-fill');
     if (!taide) return;
 
     const korgus = s ? 251 * s.energy / s.capacity : 0;
 
+    // SVG y-telg kasvab allapoole, seega nihutame tulba ülaserva, et see täituks alt üles.
     taide.setAttribute('height', korgus);
     taide.setAttribute('y', 255.5 - korgus);
 }
 
 
+// Küsib serverilt mänguseisu ja uuendab kõiki paneele.
 async function laadiParemPaneel() {
     try {
         const vastus = await fetch('/api/demo/state', { cache: 'no-store' });
@@ -73,6 +84,7 @@ async function laadiParemPaneel() {
         return seis;
 
     } catch {
+        // Kui server ei vasta, kuvame tühja seisu.
         kuvaParemPaneel(null);
         kuvaPaevadeLoendur(null);
         kuvaSeadistuseLaetus(null);
@@ -81,6 +93,7 @@ async function laadiParemPaneel() {
 }
 
 
+// Simulatsiooni lehel uuendab paneeli trading.js, teistel lehtedel teeme seda siin.
 document.addEventListener('DOMContentLoaded', async () => {
     if (typeof laadiStatistika !== 'function') {
         kontrolliSaavutusi();
@@ -90,6 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const seis = await laadiParemPaneel();
 
+    // Käiva mängu seisu uuendame iga 5 sekundi järel.
     if (seis && seis.running) {
         setInterval(laadiParemPaneel, 5000);
     }
