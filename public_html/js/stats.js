@@ -397,25 +397,6 @@ function valiGraafik(event) {
 
 // SAAVUTUSED
 
-const achievementIcons = {
-    first_buy: "buy",
-    first_sell: "sell",
-    full_battery: "battery-full",
-    empty_battery: "battery-empty",
-    negative_price: "bolt-minus",
-    double_money: "coin-1",
-    power_trader: "coin-2",
-    energy_baron: "coin-3",
-    trades_10: "swap-1",
-    trades_100: "swap-2",
-    trades_1000: "swap-3",
-    energy_100: "bolt-double",
-    days_10: "calendar-1",
-    days_30: "calendar-2",
-    streak_5: "trend"
-};
-
-
 function looElement(tag, klass, tekst) {
     const element = document.createElement(tag);
 
@@ -423,21 +404,6 @@ function looElement(tag, klass, tekst) {
     if (tekst !== undefined) element.textContent = tekst;
 
     return element;
-}
-
-
-function looIkoon(nimi, klass) {
-    const svgNimeruum = "http://www.w3.org/2000/svg";
-    const ikoon = document.createElementNS(svgNimeruum, "svg");
-    const viide = document.createElementNS(svgNimeruum, "use");
-
-    ikoon.setAttribute("class", klass);
-    ikoon.setAttribute("aria-hidden", "true");
-    viide.setAttribute("href", `#icon-${nimi}`);
-
-    ikoon.append(viide);
-
-    return ikoon;
 }
 
 

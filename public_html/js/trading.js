@@ -125,6 +125,14 @@ async function kauplemiseAPI(aadress, andmed = {}) {
             window.synkroniseeriManguseis(tulemus);
         }
 
+        if (
+            (aadress === '/api/demo/trade' ||
+            aadress === '/api/demo/next-day') &&
+            typeof kontrolliSaavutusi === 'function'
+        ) {
+            kontrolliSaavutusi();
+        }
+
         return tulemus;
 
     } finally {
