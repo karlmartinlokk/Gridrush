@@ -1,11 +1,5 @@
-# GRIDRUSH-DOC: moodul
-# AJAFILTER: teisendab Eesti kohaliku kalendripäeva UTC-ajatempli piirideks.
-# EESTI_AEG kasutab Europe/Tallinn reegleid koos suve- ja talveajaga.
-# Hinnad filtreeritakse ja valideeritakse 15-minutilise intervalliga.
-
 """ Seab päeva kestuse ning filtreerib kogu andmetest selle päeva hinnad """
 
-#  Kuupäevade, kellaaegade ja ajavahemikega töötamiseks vajalikud moodulid
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
@@ -13,22 +7,14 @@ from zoneinfo import ZoneInfo
 EESTI_AEG = ZoneInfo("Europe/Tallinn")
 
 # Leiab etteantud päeva alguse ja järgmise päeva alguse Eesti aja järgi
-# GRIDRUSH-DOC: def paeva_piirid
-# Leiab etteantud Eesti kuupäeva alguse ja järgmise päeva alguse.
-# Sisend: datetime.date või YYYY-MM-DD string; väljund: kaks timezone-aware datetime'i.
-# Lõpp on järgmise kuupäeva 00:00, mitte sama päeva 23:59:59.
-# Kellakeeramise päevad võivad seetõttu UTC-sekundites erineda 24 tunnist.
 def paeva_piirid(paev):
-    # Kui kuupäev on tekstina, teisendame selle date objektiks
     if isinstance(paev, str):
         paev = date.fromisoformat(paev)
 
-    # Määrame päeva alguse kell 00:00
     algus = datetime.combine(
         paev, time.min, tzinfo=EESTI_AEG
     )
 
-    # Määrame järgmise päeva alguse kell 00:00
     lopp = datetime.combine(
         paev + timedelta(days=1), time.min, tzinfo=EESTI_AEG
     )
@@ -36,42 +22,29 @@ def paeva_piirid(paev):
     return algus, lopp
 
 # Töötleb Eleringi API-st saadud elektrihinnad
-# GRIDRUSH-DOC: def tootle_hinnad
-# Filtreerib Eleringi toorandmed ajavahemikku [algus, lopp).
-# Kirjed teisendatakse ühtseks {'timestamp': int, 'price': float} kujuks.
-# Timestamp on sõnastiku võti: sama aja duplikaat kirjutatakse üle.
-# kontrolli_taispaeva=True nõuab kõiki oodatud 900-sekundilisi aegu.
-# Vigase/mittetäieliku hinnajada puhul tõstab ValueError; muidu sorditud loend.
 def tootle_hinnad(toorandmed, algus, lopp,
                    kontrolli_taispaeva=True):
-    # Teisendame ajavahemiku alguse ja lõpu Unix-timestampideks
     esimene = int(algus.timestamp())
     viimane = int(lopp.timestamp())
 
-    # Sõnastik hindade hoidmiseks, kus võtmeks on timestamp
     hinnad = {}
 
-    # Käime kõik API-st saadud hinnad läbi
     for kirje in toorandmed:
         aeg = int(kirje["timestamp"])
 
-        # Lisame ainult valitud päeva hinnad
         # Sama ajatempliga kirjed kirjutatakse üle, et vältida duplikaate
         if esimene <= aeg < viimane:
             hinnad[aeg] = float(kirje["price"])
 
-    # Kontrollime vajadusel, kas kõik päeva hinnad on olemas
     if kontrolli_taispaeva:
         # Genereerime oodatud timestambid 15-minutiliste vahedega (900 sekundit)
         oodatud = set(range(esimene, viimane, 900))
 
-        # Kui mõni timestamp puudub või on üleliigne, anname veateate
         if set(hinnad) != oodatud:
             raise ValueError(
                 "Selle päeva hinnakirjed ei ole täielikud."
             )
 
-    # Tagastame hinnad timestampi järgi järjestatud sõnastike loendina
     return [
         {"timestamp": aeg, "price": hinnad[aeg]}
         for aeg in sorted(hinnad)

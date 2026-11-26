@@ -1,10 +1,3 @@
-# GRIDRUSH-DOC: moodul
-# MÄNGULOOGIKA: serveripoolne mängukell, hinnavalik, aku ja tehinguarvestus.
-# Kauplemismang hoiab ühe mängija olekut; eri seansid saavad eri objektid.
-# Brauser ei määra tehinguhinda ega avaneva hinnapunkti indeksit.
-# Iga olekut muutva toimingu kaitseb Lock, et paralleelpäringud ei põrkuks.
-
-
 """Gridrushi kauplemismäng ja serveripõhine mängukell."""
 
 import random
@@ -21,61 +14,39 @@ from gridrush.day_filter import paeva_piirid
 PAEVA_PIKKUS = 180.0
 PERIOODI_PIKKUS = PAEVA_PIKKUS / 96
 
-# Kiirused, mida mängija saab valida.
 LUBATUD_KIIRUSED = (0.5, 1.0, 2.0, 5.0)
 
 
-# GRIDRUSH-DOC: class ManguViga
-# Mängureegli rikkumise või vale sisendi erind; päringukäsitleja vastab 400-ga.
-# Pärineb ValueError-ist, et server saaks valideerimisvead ühtselt töödelda.
+# Mängureegli rikkumine või vigane sisend; server vastab sellele koodiga 400.
 class ManguViga(ValueError):
     pass
 
 
-# GRIDRUSH-DOC: class Kauplemismang
 # Ühe brauseriseansi iseseisev mäng koos serveri kellaga.
-# Hoiab sularaha, salvestatud MWh, aku mahutavust, aktiivset päeva ja hindu.
-# Kell liigub monotonic-ajavahede põhjal ainult siis, kui self.kaib on True.
-# Avalikud meetodid on POST/GET API toimingute aluseks.
 class Kauplemismang:
-    # GRIDRUSH-DOC: def __init__
-    # Seadistab uue mängija vaikimisi 1000 euro, 0 MWh ja 10 MWh akuga.
-    # Mängu kuupäev ning hinnad on alguses määramata; aeg on pausil.
-    # Loob threading.Lock'i, mida kasutatakse kõigi olekutoimingute kaitseks.
     def __init__(self):
-        # Iga mängija saab oma mänguobjekti ja luku.
         self.lukk = Lock()
 
-        # Mängu algseaded.
         self.algsumma = 1000.0
         self.raha = self.algsumma
         self.energia = 0
         self.aku_maht = 10
 
-        # Praegune mängupäev ja hinnapunkt.
         self.paev = None
         self.hinnad = []
         self.indeks = 0
         self.paevade_arv = 0
 
-        # Serveripõhise mängukella muutujad.
         self.mangitud_sekundid = 0.0
         self.viimane_kell = None
         self.kaib = False
         self.paev_labi = False
         self.kiirus = 1.0
 
-    # GRIDRUSH-DOC: def _uuenda_kell
-    # Arvutab serveris möödunud mänguaja; brauseri kella ei usaldata.
-    # time.monotonic mõõdab tegelikku ajavahet ka süsteemikella muutumisel.
-    # Möödunud aeg korrutatakse valitud kiirusega 0.5/1/2/5.
-    # Päev kestab 180 mängusekundit, 96 perioodi ning 1.875 s perioodi kohta.
-    # Aja lõpp peatab kella ja seab indeksi viimasele hinnapunktile.
-    # Meetodit tohib kutsuda lukustatud kontekstist, sest see muudab olekut.
+    # Kutsuda ainult siis, kui self.lukk on hõivatud.
     def _uuenda_kell(self):
         """Arvutab kehtiva hinnapunkti serveris möödunud aja põhjal."""
 
-        # Pausil olles mänguaeg edasi ei liigu.
         if not self.kaib:
             return
 
@@ -85,31 +56,23 @@ class Kauplemismang:
         if self.viimane_kell is not None:
             vahe = max(0.0, praegu - self.viimane_kell)
 
-            # Mänguaeg sõltub kasutaja valitud kiirusest.
             self.mangitud_sekundid += vahe * self.kiirus
 
         self.viimane_kell = praegu
 
-        # Kui terve mängupäev on läbi, peatame mängukella.
         if self.mangitud_sekundid >= PAEVA_PIKKUS:
             self.mangitud_sekundid = PAEVA_PIKKUS
             self.paev_labi = True
             self.kaib = False
             self.viimane_kell = None
 
-        # Arvutame hinnaindeksi mänguaja järgi.
         # Brauserist indeksit ei usaldata.
         self.indeks = min(
             len(self.hinnad) - 1,
             int(self.mangitud_sekundid / PERIOODI_PIKKUS)
         )
 
-    # GRIDRUSH-DOC: def _seis
-    # Koostab ühe API-vastuse jaoks serveris arvutatud mänguseisu sõnastiku.
-    # Vara turuväärtus = raha + akus olev energia × aktiivne elektrihind.
-    # Kasumiprotsent võrdleb varade väärtust algse rahasummaga.
-    # Tagastab ka kella, päeva, hinnaindeksi ja juhtnuppude seisundi.
-    # Ei uuenda mängukella ise: väljakutsuja peab selle varem tegema.
+    # Ei uuenda mängukella; väljakutsuja peab seda varem tegema.
     def _seis(self):
         """Koostab mängija praeguse mänguseisu."""
 
@@ -121,7 +84,6 @@ class Kauplemismang:
         # Vara väärtus = raha + akus oleva elektri turuväärtus.
         vara_vaartus = self.raha + self.energia * hind["price"]
 
-        # Kasumi või kahjumi protsent algsummast.
         if self.algsumma > 0:
             kasum = (
                 (vara_vaartus - self.algsumma)
@@ -145,19 +107,12 @@ class Kauplemismang:
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasum, 1),
 
-            # Brauser kasutab neid mängukella kuvamiseks.
             "elapsed_seconds": round(self.mangitud_sekundid, 6),
             "speed": self.kiirus,
             "running": self.kaib,
             "day_finished": self.paev_labi
         }
 
-    # GRIDRUSH-DOC: def hinnad_nahtavad
-    # Turvaline GET-hinnavastus: avaldab ainult serveri aja järgi möödunud hinnad.
-    # Kutsub lukus _uuenda_kell(), seejärel koostab 96 kirje vastuse.
-    # Tulevaste perioodide timestamp jääb nähtavaks, kuid price on None/null.
-    # Päringust ei loeta kliendi soovitud hinnaindeksit ega kuupäeva.
-    # See kaitseb Gridrushi API-t, mitte avalikke ajaloolisi välisandmeid.
     def hinnad_nahtavad(self):
         """Tagastab ainult serveri mängukella järgi avanenud hinnad."""
 
@@ -165,8 +120,6 @@ class Kauplemismang:
             if not self.hinnad:
                 raise ManguViga("Mäng pole alustatud.")
 
-            # Enne vastuse koostamist uuendame mängukella.
-            # Brauser ei saa ise määrata, milliseid hindu näeb.
             self._uuenda_kell()
 
             # Ajatemplid võib ette teada, kuid tulevased hinnad
@@ -185,28 +138,17 @@ class Kauplemismang:
                 ]
             }
 
-    # GRIDRUSH-DOC: def seis
-    # Tagastab olemasoleva seansi praeguse mänguoleku.
-    # Kui mäng pole alustatud, tagastab {'active': False}.
-    # Olemasoleva mängu korral lukustab, uuendab kella ja tagastab _seis().
     def seis(self):
         """Tagastab olemasoleva mänguseisu seda lähtestamata."""
 
         with self.lukk:
-            # Kui selles seansis mängu pole, tagastame active: false.
             if not self.hinnad:
                 return {"active": False}
 
-            # Värskendame kõigepealt serveripõhist mängukella.
             self._uuenda_kell()
 
             return self._seis()
 
-    # GRIDRUSH-DOC: def _loe_taispaev
-    # Loeb SQLite'ist ja kontrollib kõik päeva 96 järjestikust ajatemplit.
-    # Võrdleb tegelikke ajatembli väärtusi 900-sekundiliste oodatud väärtustega.
-    # Eripikkusega ja puudulikud päevad annavad ManguViga erindi.
-    # Tulemuseks on kronoloogiline 96 hinnapunkti loend serveri jaoks.
     def _loe_taispaev(self, paev):
         """Laeb ja kontrollib ühe päeva kõik 96 hinnaperioodi."""
 
@@ -228,16 +170,9 @@ class Kauplemismang:
 
         return hinnad
 
-    # GRIDRUSH-DOC: def alusta
-    # Lähtestab ühe mängija raha, aku, mängukella ja päevade loenduri.
-    # Kui paev=None, valitakse juhuslik päev saadaval_paevad() hulgast.
-    # Kui kuupäev antakse, kontrollitakse YYYY-MM-DD kuju ja andmete täielikkust.
-    # Oluline: see on serveri API-meetod, mistõttu kuupäevavalikut tuleb vajadusel
-    # serveri poolel piirata (mitte ainult HTML-ist eemaldada).
     def alusta(self, paev=None):
         """Alustab ainult selle mängija jaoks uue mängu."""
 
-        # Kui kuupäeva pole antud, valime juhusliku päeva.
         if paev is None:
             paevad = saadaval_paevad()
 
@@ -248,7 +183,6 @@ class Kauplemismang:
 
             paev = random.choice(paevad)
 
-        # Kontrollime kuupäeva vormingut.
         try:
             if (
                 not isinstance(paev, str)
@@ -262,7 +196,6 @@ class Kauplemismang:
         hinnad = self._loe_taispaev(paev)
 
         with self.lukk:
-            # Lähtestame raha, aku ja hinnapunkti.
             self.paev = paev
             self.hinnad = hinnad
             self.paevade_arv = 1
@@ -270,7 +203,6 @@ class Kauplemismang:
             self.raha = self.algsumma
             self.energia = 0
 
-            # Lähtestame mängukella.
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
             self.kaib = False
@@ -279,10 +211,6 @@ class Kauplemismang:
 
             return self._seis()
 
-    # GRIDRUSH-DOC: def jatka
-    # Käivitab või jätkab mängukella ilma seni mängitud sekundeid nullimata.
-    # Juba käiva kella korral ei alustata uut ajamõõtu.
-    # Lõppenud päeva korral visatakse ManguViga; esmalt tuleb uus_paev().
     def jatka(self):
         """Käivitab või jätkab serveripõhist mängukella."""
 
@@ -297,17 +225,12 @@ class Kauplemismang:
                     "Päev on lõppenud. Alusta uut päeva."
                 )
 
-            # Juba töötavat mängukella uuesti ei alustata.
             if not self.kaib:
                 self.viimane_kell = time.monotonic()
                 self.kaib = True
 
             return self._seis()
 
-    # GRIDRUSH-DOC: def peata
-    # Lisab esmalt jooksva ajavahe, siis peatab kella ja fikseerib hinna.
-    # Pausil saab tehinguid sooritada külmutatud hinnaga, kuna kell ei liigu.
-    # Alustamata seansi korral tagastab {'active': False}.
     def peata(self):
         """Peatab mängukella ja jätab hinna samaks."""
 
@@ -323,10 +246,6 @@ class Kauplemismang:
 
             return self._seis()
 
-    # GRIDRUSH-DOC: def muuda_kiirust
-    # Valideerib lubatud kiiruse ning jätkab ajamõõtu uue teguriga.
-    # Kogub enne muutmist aja kokku vana kiirusega, et mitte kaotada sekundeid.
-    # Lubatud on ainult arvulised 0.5, 1, 2, 5; muu sisend tõstab ManguViga.
     def muuda_kiirust(self, kiirus):
         """Muudab mängukiirust ilma senist mänguaega kaotamata."""
 
@@ -345,16 +264,10 @@ class Kauplemismang:
             # Arvestame senise aja veel vana kiirusega.
             self._uuenda_kell()
 
-            # Järgmised sekundid liiguvad uue kiirusega.
             self.kiirus = float(kiirus)
 
             return self._seis()
 
-    # GRIDRUSH-DOC: def uus_paev
-    # Liigub järgmisele kronoloogiliselt saadaolevale 96-hinnalisele päevale.
-    # Andmebaasi viimase päeva juurest alustatakse vajadusel algusest uuesti.
-    # Päeva saab vahetada ainult pärast serveri kinnitatud päeva lõppu.
-    # Raha, akus olev energia ja kiirus jäävad alles; kell algab uuesti nullist.
     def uus_paev(self):
         """Alustab järgmise päeva, säilitades raha ja aku."""
 
@@ -364,7 +277,6 @@ class Kauplemismang:
 
             self._uuenda_kell()
 
-            # Päeva ei tohi vahetada enne selle lõppu.
             if not self.paev_labi:
                 raise ManguViga(
                     "Praegune päev pole veel lõppenud."
@@ -386,27 +298,18 @@ class Kauplemismang:
 
             uued_hinnad = self._loe_taispaev(uus_paev)
 
-            # Vahetame päeva ja alustame indeksist 0.
             self.paev = uus_paev
             self.hinnad = uued_hinnad
             self.indeks = 0
             self.paevade_arv += 1
 
-            # Lähtestame ainult mängukella.
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
             self.kaib = False
             self.paev_labi = False
 
-            # Raha, aku ja kiirus jäävad samaks.
             return self._seis()
 
-    # GRIDRUSH-DOC: def tehing
-    # Ostab või müüb MWh koguse serveri määratud hetkehinna alusel.
-    # tegevus peab olema buy/sell ja kogus positiivne int/float.
-    # Kontrollib aku piire ja rahajääki, sh negatiivse elektrihinna olukorda.
-    # Muutused salvestatakse serveris; brauser saab kinnitatud seisu ja teate.
-    # round(..., 2) tagab rahasummade senti täpsuse.
     def tehing(self, tegevus, kogus):
         """Ostab või müüb elektrit serveri määratud hinnaga."""
 
@@ -422,7 +325,6 @@ class Kauplemismang:
             if not self.hinnad:
                 raise ManguViga("Mäng pole alustatud.")
 
-            # Arvutame serveri kellaga tehingu tegeliku hinnapunkti.
             self._uuenda_kell()
 
             if self.paev_labi:
