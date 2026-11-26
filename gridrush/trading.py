@@ -4,7 +4,10 @@ import random
 import time
 from datetime import date
 from threading import Lock
+import sqlite3
+import secrets
 
+from gridrush.statistics import loo_mang, salvesta_seis
 from gridrush.db import loe_paev, saadaval_paevad
 from gridrush.day_filter import paeva_piirid
 
@@ -24,7 +27,9 @@ class ManguViga(ValueError):
 
 # Ühe brauseriseansi iseseisev mäng koos serveri kellaga.
 class Kauplemismang:
-    def __init__(self):
+
+    def __init__(self, player_id=None):
+        # Iga mängija saab oma mänguobjekti ja luku.
         self.lukk = Lock()
 
         self.algsumma = 1000.0
@@ -42,20 +47,56 @@ class Kauplemismang:
         self.kaib = False
         self.paev_labi = False
         self.kiirus = 1.0
+        # Mänguajaloo jaoks vajalikud muutujad.
+        self.player_id = player_id or secrets.token_urlsafe(32)
+        self.game_id = None
 
-    # Kutsuda ainult siis, kui self.lukk on hõivatud.
+        self.tegelik_manguaeg = 0.0
+        self.paeva_algvaartus = self.algsumma
+
+
+    def _salvesta_ajalugu(self, tehing=None, tipp=None):
+        """Salvestab mänguseisu ja vajadusel tehingu."""
+
+        if self.game_id is None or not self.hinnad:
+            return
+
+        seis = self._seis()
+
+        salvesta_seis(
+            game_id=self.game_id,
+            seis=seis,
+            manguaeg=self.tegelik_manguaeg,
+            tipp=seis["asset_value"] if tipp is None else tipp,
+            paeva_algvaartus=self.paeva_algvaartus,
+            tehing=tehing
+        )
+
+
     def _uuenda_kell(self):
-        """Arvutab kehtiva hinnapunkti serveris möödunud aja põhjal."""
+        """Uuendab mängukella ja salvestab ajaloo."""
 
         if not self.kaib:
             return
 
-        # monotonic() sobib ajavahede mõõtmiseks.
         praegu = time.monotonic()
+        eelmine_indeks = self.indeks
 
         if self.viimane_kell is not None:
             vahe = max(0.0, praegu - self.viimane_kell)
 
+            # Arvestame tegelikku mänguaega ainult päeva lõpuni.
+            jaanud_aeg = max(
+                0.0,
+                PAEVA_PIKKUS - self.mangitud_sekundid
+            )
+
+            tegelik_vahe = min(
+                vahe,
+                jaanud_aeg / self.kiirus
+            )
+
+            self.tegelik_manguaeg += tegelik_vahe
             self.mangitud_sekundid += vahe * self.kiirus
 
         self.viimane_kell = praegu
@@ -66,13 +107,22 @@ class Kauplemismang:
             self.kaib = False
             self.viimane_kell = None
 
-        # Brauserist indeksit ei usaldata.
         self.indeks = min(
             len(self.hinnad) - 1,
             int(self.mangitud_sekundid / PERIOODI_PIKKUS)
         )
 
-    # Ei uuenda mängukella; väljakutsuja peab seda varem tegema.
+        # Leiame suurima vara väärtuse ka vahepealsetel
+        # hinnapunktidel, millest kell võis üle liikuda.
+        tipp = max(
+            self.raha + self.energia * self.hinnad[i]["price"]
+            for i in range(eelmine_indeks, self.indeks + 1)
+        )
+
+        # Salvestab ka lõpetatud mängupäeva.
+        self._salvesta_ajalugu(tipp=round(tipp, 2))
+
+
     def _seis(self):
         """Koostab mängija praeguse mänguseisu."""
 
@@ -196,6 +246,20 @@ class Kauplemismang:
         hinnad = self._loe_taispaev(paev)
 
         with self.lukk:
+            # Salvestame eelmise mängu viimase seisu.
+            if self.game_id is not None:
+                self._uuenda_kell()
+                self._salvesta_ajalugu()
+
+            # Loome andmebaasi uue mängu.
+            self.game_id = loo_mang(
+                self.player_id,
+                self.algsumma
+            )
+
+            self.tegelik_manguaeg = 0.0
+            self.paeva_algvaartus = self.algsumma
+            # Lähtestame raha, aku ja hinnapunkti.
             self.paev = paev
             self.hinnad = hinnad
             self.paevade_arv = 1
@@ -298,6 +362,12 @@ class Kauplemismang:
 
             uued_hinnad = self._loe_taispaev(uus_paev)
 
+            self._salvesta_ajalugu()
+
+            # Uue päeva võrdluspunkt on eelmise päeva lõppväärtus.
+            self.paeva_algvaartus = self._seis()["asset_value"]
+
+            # Vahetame päeva ja alustame indeksist 0.
             self.paev = uus_paev
             self.hinnad = uued_hinnad
             self.indeks = 0
@@ -310,16 +380,20 @@ class Kauplemismang:
 
             return self._seis()
 
+
+    
     def tehing(self, tegevus, kogus):
-        """Ostab või müüb elektrit serveri määratud hinnaga."""
+        """Ostab või müüb elektrit ja salvestab tehingu."""
 
         if tegevus not in ("buy", "sell"):
             raise ManguViga("Tundmatu tehing.")
 
-        if type(kogus) not in (float, int) or kogus <= 0:
-            raise ManguViga(
-                "Kogus peab olema positiivne arv."
-            )
+        if (
+            type(kogus) not in (float, int)
+            or not 0 < kogus <= self.aku_maht
+            or kogus % 0.5 != 0
+        ):
+            raise ManguViga("Vigane elektrikogus.")
 
         with self.lukk:
             if not self.hinnad:
@@ -332,11 +406,15 @@ class Kauplemismang:
                     "Päev on lõppenud. Alusta uut päeva."
                 )
 
-            # Pausi ajal saab kaubelda peatatud hinnaga.
             hind = self.hinnad[self.indeks]["price"]
             summa = round(kogus * hind, 2)
 
+            # Jätame eelmise oleku meelde.
+            eelmine_raha = self.raha
+            eelmine_energia = self.energia
+
             if tegevus == "buy":
+
                 if self.energia + kogus > self.aku_maht:
                     raise ManguViga(
                         "Akus pole piisavalt ruumi."
@@ -353,12 +431,12 @@ class Kauplemismang:
                 teade = f"Ostsid {kogus} MWh elektrit."
 
             else:
+
                 if self.energia < kogus:
                     raise ManguViga(
                         "Akus pole piisavalt elektrit."
                     )
 
-                # Negatiivse hinna puhul võib müümine maksta.
                 if self.raha + summa < -0.000001:
                     raise ManguViga(
                         "Müümiseks pole piisavalt raha."
@@ -368,6 +446,26 @@ class Kauplemismang:
                 self.energia -= kogus
 
                 teade = f"Müüsid {kogus} MWh elektrit."
+
+            # Arvutame tegeliku raha muutuse.
+            raha_muutus = round(
+                self.raha - eelmine_raha, 2
+            )
+
+            try:
+                # Salvestame ainult õnnestunud tehingud.
+                self._salvesta_ajalugu(tehing={
+                    "action": tegevus,
+                    "quantity": kogus,
+                    "cash_change": raha_muutus
+                })
+
+            except sqlite3.Error:
+                # Kui andmebaasi salvestamine ebaõnnestub,
+                # taastame tehingueelse raha ja aku seisu.
+                self.raha = eelmine_raha
+                self.energia = eelmine_energia
+                raise
 
             vastus = self._seis()
             vastus["message"] = teade

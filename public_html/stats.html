@@ -8,10 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nata+Sans:wght@100..900&display=swap">
     <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/stats.css">
     <link rel="stylesheet" href="css/interface.css">
+    <link rel="stylesheet" href="css/stats.css">
 
-    <script src="js/interface.js" defer></script>
+    <script src="js/global.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" defer></script>
+    <script src="js/stats.js" defer></script>
 </head>
 
 <body>
@@ -27,19 +29,19 @@
             </li>
             <li class="sidebar-item">
                 <a href="./index.html">
-                    <img src="img/nav-simulation-icon.svg" alt="simulation icon">
+                    <img src="img/nav-simulation-icon.svg" alt="">
                     <span>Simulatsioon</span>
                 </a>
             </li>
             <li class="sidebar-item">
                 <a href="./setup.html">
-                    <img src="img/nav-setup-icon.svg" alt="setup icon">
+                    <img src="img/nav-setup-icon.svg" alt="">
                     <span>Töölaud</span>
                 </a>
             </li>
             <li class="sidebar-item">
                 <a href="./stats.html">
-                <img src="img/nav-stats-icon.svg" alt="stats icon">
+                <img src="img/nav-stats-icon.svg" alt="">
                 <span>Statistika</span>
                 </a>
             </li>
@@ -60,8 +62,121 @@
             </div>
         </div>
 
-        <div class="simulation-page">
-            Statistika sisu
+        <div class="stats-page">
+            <p id="stats-status" role="status">Laadin statistikat...</p>
+
+            <section class="stats-panel">
+                <div class="stats-toolbar">
+                    <div class="chart-buttons" role="group" aria-label="Graafiku valik">
+                        <button type="button" data-chart="asset-chart" aria-pressed="true">Varade väärtuse ajalugu</button>
+                        <button type="button" data-chart="profit-chart" aria-pressed="false">Kasum päevade kaupa</button>
+                    </div>
+                    <select id="stats-scope" aria-label="Statistikaperiood">
+                        <option value="all">Kogu ajalugu</option>
+                        <option value="game">Praegune mäng</option>
+                    </select>
+                </div>
+                <div class="stats-charts empty" id="stats-charts">
+                    <p class="stats-placeholder">Graafikute kuvamiseks lõpeta esimene mängupäev.</p>
+                    <div class="stats-chart">
+                        <canvas id="asset-chart"></canvas>
+                    </div>
+                    <div class="stats-chart" hidden>
+                        <canvas id="profit-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span>Kogukasum</span>
+                    <strong id="stat-profit">-</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Suurim vara väärtus</span>
+                    <strong id="stat-best-value">-</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Tehinguid kokku</span>
+                    <strong id="stat-trades">-</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Mängitud päevi</span>
+                    <strong id="stat-days">-</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Kasumlikud päevad</span>
+                    <strong id="stat-winrate">-</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Mänguaeg</span>
+                    <strong id="stat-playtime">-</strong>
+                </div>
+            </div>
+
+            <div class="stats-trade">
+                <section class="stats-panel sell">
+                    <h2 class="stats-title">MÜÜK</h2>
+                    <dl class="stats-details">
+                        <div><dt>Müügitehinguid</dt><dd id="stat-sell-count">-</dd></div>
+                        <div><dt>Müüdud elekter</dt><dd id="stat-energy-sold">-</dd></div>
+                        <div><dt>Kõrgeim hind</dt><dd id="stat-highest-sell">-</dd></div>
+                        <div><dt>Keskmine hind</dt><dd id="stat-average-sell">-</dd></div>
+                    </dl>
+                </section>
+                <section class="stats-panel">
+                    <h2 class="stats-title">PÄEVAD</h2>
+                    <dl class="stats-details">
+                        <div><dt>Parim päev</dt><dd id="stat-best-day">-</dd></div>
+                        <div><dt>Halvim päev</dt><dd id="stat-worst-day">-</dd></div>
+                        <div><dt>Pikim kasumiseeria</dt><dd id="stat-streak">-</dd></div>
+                        <div><dt>Alustatud mänge</dt><dd id="stat-games">-</dd></div>
+                    </dl>
+                </section>
+                <section class="stats-panel buy">
+                    <h2 class="stats-title">OST</h2>
+                    <dl class="stats-details">
+                        <div><dt>Ostutehinguid</dt><dd id="stat-buy-count">-</dd></div>
+                        <div><dt>Ostetud elekter</dt><dd id="stat-energy-bought">-</dd></div>
+                        <div><dt>Madalaim hind</dt><dd id="stat-lowest-buy">-</dd></div>
+                        <div><dt>Keskmine hind</dt><dd id="stat-average-buy">-</dd></div>
+                    </dl>
+                </section>
+            </div>
+
+            <section class="stats-panel stats-section">
+                <div class="stats-section-header">
+                    <h2 class="stats-heading">
+                        Saavutused
+                        <img src="img/nav-stats-icon.svg" alt="">
+                    </h2>
+                    <strong id="achievement-count">0 / 15</strong>
+                </div>
+                <div class="achievement-battery" id="achievement-battery" aria-hidden="true"></div>
+            </section>
+            <div class="achievements-grid" id="achievements-grid"></div>
+
+            <div class="stats-section-header stats-section">
+                <h2 class="stats-heading">
+                    Tehingute ajalugu
+                    <svg aria-hidden="true"><use href="img/achievements.svg#icon-swap"/></svg>
+                </h2>
+            </div>
+            <div class="stats-table-wrapper" tabindex="0" role="region" aria-label="Viimased 100 tehingut">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Päev</th>
+                            <th>Aeg</th>
+                            <th>Tegevus</th>
+                            <th>Kogus</th>
+                            <th>Hind</th>
+                            <th>Raha muutus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-body"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="right-interface"> 
