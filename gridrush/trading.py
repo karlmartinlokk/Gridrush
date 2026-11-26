@@ -5,6 +5,7 @@ import random
 import time
 from datetime import date
 from threading import Lock
+import math
 
 from gridrush.db import loe_paev, saadaval_paevad
 from gridrush.day_filter import paeva_piirid
@@ -80,8 +81,16 @@ class Kauplemismang:
     def vaheta_aku(self, aku_id):
         with self.lukk:
 
+            if not isinstance(aku_id, str) or aku_id not in AKUD:
+                raise ManguViga("Sellist akut pole olemas.")
+
             if aku_id not in self.omatud_akud:
                 raise ManguViga("See aku ei kuulu sulle.")
+
+            uue_aku_maht = AKUD[aku_id]['maht']
+
+            if self.energia > uue_aku_maht:
+                raise ManguViga("Energiat on uue aku jaoks liiga palju.")
            
             self.aktiivne_aku = aku_id
             self.aku_maht = AKUD[self.aktiivne_aku]['maht']
@@ -394,7 +403,7 @@ class Kauplemismang:
         if tegevus not in ("buy", "sell"):
             raise ManguViga("Tundmatu tehing.")
 
-        if type(kogus) not in (int, float) or kogus <= 0:
+        if type(kogus) not in (int, float) or not math.isfinite(kogus) or kogus <= 0:
             raise ManguViga(
                 "Kogus peab olema positiivne arv."
             )
@@ -422,7 +431,7 @@ class Kauplemismang:
                 raise ManguViga("Aku võimsus ei võimalda sellel perioodil nii palju kaubelda.")
             # Pausi ajal saab kaubelda peatatud hinnaga.
             hind = self.hinnad[self.indeks]["price"]
-            summa = round(kogus * hind * EFEKTIIVSUS, 2)
+            summa = round(kogus * hind, 2)
 
             if tegevus == "buy":
                 if self.energia + kogus > self.aku_maht:
