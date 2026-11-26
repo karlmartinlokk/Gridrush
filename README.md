@@ -33,7 +33,7 @@ Enne käskluste läbiviimist on soovitatud luua virtuaalkeskkond (virtual enviro
 ```
    pip install -r requirements.txt
 ```
-2. Lae andmed andmebaasi, seda avalikus repositooriumis ei ole, esmane laadimine võtab veits aega:
+2. Et arenduses mängu testida tuleb esmalt andmed andmebaasi laadida järgneva käsuga (pane tähele, et sellega võib võtta päris kaua, aga testimiseks piisab ka, kui lased ainult paar esimest päeva andmebaasi panna):
 ```
    python -m tools.sync_prices backfill
 ```
