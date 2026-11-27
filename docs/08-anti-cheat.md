@@ -25,7 +25,7 @@ MITTEUSALDATUD BRAUSER
 
 ## 3. `hinnad_nahtavad()` tegelik loogika
 
-Meetod asub `gridrush/trading.py` klassis `Kauplemismang`. See võtab `self.lukk` luku, kontrollib mängu olemasolu, värskendab `_uuenda_kell()` kaudu serveri aega ja koostab loendi:
+Meetod asub `gridrush/game.py` klassis `Kauplemismang`. See võtab `self.lukk` luku, kontrollib mängu olemasolu, värskendab `_uuenda_kell()` kaudu serveri aega ja koostab loendi:
 
 ```python
 {

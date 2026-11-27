@@ -2,7 +2,7 @@
 
 ## 1. Mooduli roll
 
-`gridrush/trading.py` sisaldab klassi `Kauplemismang`, mis esindab **ühe kasutaja üht mänguseanssi**. Seda võib käsitleda serveripoolse mängu olekumasinana. Klass ei joonista graafikut ega võta otse vastu HTTP päringuid. Tema ülesanne on hoida mängija raha, aku täituvust, kuupäeva ja mängukella ning rakendada ostu-müügi reegleid.
+`gridrush/game.py` sisaldab klassi `Kauplemismang`, mis esindab **ühe kasutaja üht mänguseanssi**. Seda võib käsitleda serveripoolse mängu olekumasinana. Klass ei joonista graafikut ega võta otse vastu HTTP päringuid. Tema ülesanne on hoida mängija raha, aku täituvust, kuupäeva ja mängukella ning rakendada ostu-müügi reegleid.
 
 HTTP-kihi `tools/dev_server.py` ülesanne on leida mänguobjekt ja kutsuda selle meetodeid; brauser kasutab `public_html/js/trading.js` kaudu samu toiminguid.
 

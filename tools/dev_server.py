@@ -12,7 +12,7 @@ from pathlib import Path
 from threading import Lock
 from urllib.parse import urlsplit, parse_qs
 
-from gridrush.trading import Kauplemismang, ManguViga
+from gridrush.game import Kauplemismang, ManguViga
 
 from gridrush.statistics import (
     loo_tabelid,
