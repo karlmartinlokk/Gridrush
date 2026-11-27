@@ -43,10 +43,9 @@ const stats = document.getElementById("stats");
 const paevadeLoendur = document.getElementById("day-count");
 
 const playPauseNupp = document.getElementById("play-pause");
-const resetNupp = document.getElementById("reset");
 
-// Päeva lõpu teavitusaken.
-const paevaLopuDialog = document.getElementById("day-end-dialog");
+// Päeva lõpus graafikut kattev tume kiht.
+const paevaLopuKate = document.getElementById("day-end-overlay");
 
 
 // Serveri viimase kinnitatud mängukella andmed.
@@ -232,42 +231,42 @@ function peataTaimer() {
 }
 
 
-// Kuvame päeva lõpu kokkuvõtte Pythoni kinnitatud mänguseisust.
+// Päeva lõpus tumendame graafiku ja näitame "Järgmine päev" nuppu.
+// Kate jääb nähtavale, kuni mängija alustab uut päeva
+// või laadib käsitsi teise kuupäeva.
 function avaPaevaLopuTeavitus() {
-    // Kontrollime, kas teavitusaken on HTML-is olemas.
-    if (!paevaLopuDialog) {
-        window.kauplemine?.teata(
-            'Päev läbi. Päeva lõpu teavitus puudub index.html failist.'
-        );
+    document.getElementById('day-end-error').textContent = '';
+    kuvaPaevaKokkuvote(window.kauplemine?.seis);
+    paevaLopuKate.hidden = false;
+}
+
+
+// Päeva tehingute arv ja kasum tulevad serverist (day_trades, day_profit).
+// Kasum on vara väärtuse muutus päeva jooksul, seega arvestab ka aku ostu.
+function kuvaPaevaKokkuvote(seis) {
+    const kokkuvote = document.getElementById('day-end-summary');
+
+    if (!seis || !Number.isFinite(seis.day_profit)) {
+        kokkuvote.textContent = '';
         return;
     }
 
-    // Võtame viimase serveri kinnitatud mänguseisu.
-    const seis = window.kauplemine?.seis;
+    const kasum = seis.day_profit;
+    const kasumiElement = document.createElement('span');
 
-    if (seis) {
-        // Kuvame rahajäägi Eesti arvuvormingus.
-        document.getElementById('day-end-balance').textContent =
-            vormindaEuro(seis.balance);
+    kasumiElement.textContent =
+        `${kasum > 0 ? '+' : kasum < 0 ? '-' : ''}${vormindaEuro(Math.abs(kasum))}`;
+    kasumiElement.className = kasum > 0 ? 'gain' : kasum < 0 ? 'loss' : '';
 
-        // Kuvame salvestatud elektrienergia ja aku mahutavuse.
-        document.getElementById('day-end-energy').textContent =
-            `${seis.energy} / ${seis.capacity} MWh`;
+    kokkuvote.replaceChildren(
+        `Tegid ${seis.day_trades} tehingut ning teenisid kasumit `,
+        kasumiElement
+    );
+}
 
-        // Kuvame Pythoni arvutatud kasumiprotsendi.
-        const protsent = seis.profit_percent;
 
-        document.getElementById('day-end-profit').textContent =
-            `${protsent > 0 ? '+' : ''}${protsent.toFixed(1)}%`;
-    }
-
-    // Eemaldame eelmise võimaliku veateate.
-    document.getElementById('day-end-error').textContent = '';
-
-    // Avame teavituse ainult siis, kui see pole juba avatud.
-    if (!paevaLopuDialog.open) {
-        paevaLopuDialog.showModal();
-    }
+function peidaPaevaLopuTeavitus() {
+    paevaLopuKate.hidden = true;
 }
 
 
@@ -331,7 +330,7 @@ async function alustaUutPaeva() {
 
         // Päevavahetus õnnestus.
         paevLabi = false;
-        paevaLopuDialog?.close();
+        peidaPaevaLopuTeavitus();
 
         // Graafik liigub edaspidi ilma iga hinnapunkti POST-päringuta.
         taimer = setInterval(
@@ -344,7 +343,7 @@ async function alustaUutPaeva() {
         );
 
     } catch (viga) {
-        // Kui laadimine ebaõnnestub, jääb teavitus avatuks.
+        // Kui laadimine ebaõnnestub, jääb kate alles ja nupuga saab uuesti proovida.
         veateade.textContent = `Viga: ${viga.message}`;
 
     } finally {
@@ -363,11 +362,11 @@ function uuendaNupud() {
     // Lukustame nupud ainult mängu käivitamisel
     // ja graafiku laadimisel, mitte iga hinnamuutuse ajal.
     //
-    // Nii ei vilgu Play ja Reset iga hinnasammu ajal.
+    // Nii ei vilgu Play iga hinnasammu ajal.
     const lukus = kaivitamine || laadimine;
 
-    playPauseNupp.disabled = lukus;
-    resetNupp.disabled = lukus;
+    // Päeva lõpus pole midagi mängida, edasi saab ainult "Järgmine päev" nupuga.
+    playPauseNupp.disabled = lukus || paevLabi;
 
     playPauseNupp.classList.toggle('playing', kaib);
 
@@ -818,66 +817,6 @@ function lulitaGraafik() {
 }
 
 
-// Reset lõpetab kogu mängu. Mängija tunnus jääb küpsisesse alles,
-// nii et uus mäng läheb statistikas sama mängija alla.
-// Uus mäng algab alles Play vajutamisel.
-async function nulliGraafik() {
-    if (
-        kaivitamine ||
-        sammKaib ||
-        laadimine ||
-        window.kauplemine?.toimetab
-    ) return;
-
-    peataTaimer();
-
-    kaivitamine = true;
-    uuendaNupud();
-
-    try {
-        await window.kauplemine.lahtesta();
-
-        // Pooleliolevad hinnapäringud ei tohi vana graafikut taastada.
-        paringuNumber++;
-
-        if (chart) {
-            chart.destroy();
-            chart = null;
-        }
-
-        hinnad = [];
-        hetkeIndeks = 0;
-        nahtudIndeksid.clear();
-        graafikuPaev = "";
-        serveriSeis = null;
-        kellaKinnitus = null;
-
-        // Reset tühistab päeva lõpu oleku.
-        paevLabi = false;
-
-        if (paevaLopuDialog?.open) {
-            paevaLopuDialog.close();
-        }
-
-        paevadeLoendur.textContent = 'Päev -';
-        kuvaOotel();
-
-        window.kauplemine.teata(
-            'Mäng lähtestatud. Vajuta Play.'
-        );
-
-    } catch (viga) {
-        window.kauplemine?.teata(
-            `Viga: ${viga.message}`
-        );
-
-    } finally {
-        kaivitamine = false;
-        uuendaNupud();
-    }
-}
-
-
 // Laeme valitud päeva hinnad SQLite'ist API kaudu.
 async function laadiGraafik({ sailitaMang = false } = {}) {
     // Väldime mitut samaaegset graafiku laadimist.
@@ -894,10 +833,7 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
 
         // Käsitsi päeva vahetamine lõpetab vana päeva oleku.
         paevLabi = false;
-
-        if (paevaLopuDialog?.open) {
-            paevaLopuDialog.close();
-        }
+        peidaPaevaLopuTeavitus();
 
         peataTaimer();
 
@@ -1141,29 +1077,16 @@ playPauseNupp.addEventListener(
     "click", lulitaGraafik
 );
 
-// Seome Reset-nupu.
-resetNupp.addEventListener(
-    "click", nulliGraafik
-);
-
 // Kuupäeva käsitsi muutmisel laadime valitud päeva.
 kuupaev.addEventListener(
     "change", () => laadiGraafik()
 );
 
 
-// Seome päeva lõpu teavitusakna nupud.
-if (paevaLopuDialog) {
-    // Käivitame järgmise päeva ainult mängija soovil.
-    document.getElementById('next-day-button').addEventListener(
-        'click', alustaUutPaeva
-    );
-
-    // Sulgeme teavituse ja jätame mängu pausile.
-    document.getElementById('later-button').addEventListener(
-        'click', () => paevaLopuDialog.close()
-    );
-}
+// Järgmine päev käivitub ainult mängija soovil.
+document.getElementById('next-day-button').addEventListener(
+    'click', alustaUutPaeva
+);
 
 
 // Lehe avamisel taastame serverist selle mängijaseansi mängu.
