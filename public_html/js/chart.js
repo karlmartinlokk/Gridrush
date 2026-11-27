@@ -574,6 +574,22 @@ async function uuendaNahtavaidHindu() {
         hinnad = andmed.prices;
         avaldatudIndeks = andmed.index;
 
+        if (andmed.state?.active) {
+
+            // Anname uuendatud rahajäägi
+            // kauplemise kasutajaliidesele.
+            window.kauplemine?.uuendaSeis?.(
+                andmed.state
+            );
+            
+            // Sünkroniseerime graafiku mängukella
+            // sama serveris kinnitatud seisuga.
+            synkroniseeriKell(
+                andmed.state
+            );
+        }
+
+
         if (avaldatudIndeks > hetkeIndeks) {
             if (avamiseKaader === null) naitaAvaldatudPunktid();
         } else {

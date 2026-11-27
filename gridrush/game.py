@@ -12,6 +12,7 @@ from gridrush.statistics import loo_mang, salvesta_seis
 from gridrush.db import loe_paev, saadaval_paevad
 from gridrush.day_filter import paeva_piirid
 from gridrush.batteries import AKUD, EFEKTIIVSUS
+from gridrush.generators import GENERAATORID, perioodi_toodang
 
 
 # Üks mängupäev kestab tavakiirusel kolm minutit.
@@ -45,6 +46,34 @@ class Kauplemismang:
         self.viimane_tehinguperiood = None
 
         self.omatud_akud = {'starter'}
+
+        # Mängijale kuuluvad päikesepaneelid ja tuulikud.
+        # Sõnastiku võti: generaatori ID, nt "wind_1".
+        # Väärtus: (ostmise mängupäeva number, esimene tootmisperiood).
+        # Näide:
+        # "wind_1": (1, 10)
+        # Tähendab, et tuulik osteti 1. mängupäeval
+        # ja hakkab tootma 10. hinnaperioodist.
+        self.omatud_generaatorid = {}
+
+        # Viimane hinnaperiood, mille toodang on juba müüdud.
+        # -1 tähendab, et ühtegi perioodi pole veel müüdud.
+        self.viimane_muudud_periood = -1
+
+        # Kogu mängu jooksul generaatoritega teenitud tulu.
+        self.generaatori_tulu = 0.0
+
+        # Kogu mängu jooksul toodetud ja müüdud energia.
+        self.generaatori_energia = 0.0
+
+        # Käesoleva mängupäeva generaatorite müügitulu.
+        self.paeva_generaatori_tulu = 0.0
+
+        # Käesoleval mängupäeval müüdud energiakogus.
+        self.paeva_generaatori_energia = 0.0
+
+        # Viimase automaatmüügi info kasutajaliidese jaoks.
+        self.viimane_automaatselt_muudud = None
 
         self.paev = None
         self.hinnad = []
@@ -82,6 +111,89 @@ class Kauplemismang:
             tehing=tehing
         )
 
+    
+    def osta_generaator(self, generaatori_id):
+
+        with self.lukk:
+
+            if not self.hinnad:
+                raise ManguViga(
+                    "Mäng pole alustatud."
+                )
+
+            if (
+                not isinstance(generaatori_id, str)
+                or generaatori_id not in GENERAATORID
+            ):
+                raise ManguViga(
+                    "Sellist generaatorit pole olemas."
+                )
+
+            # Enne ostu uuendame mängukella.
+            # Kui vahepeal lõppes hinnaperiood, müüme
+            # selle perioodi toodangu kõigepealt ära.
+            self._uuenda_kell()
+
+            if generaatori_id in self.omatud_generaatorid:
+                raise ManguViga(
+                    "See generaator on juba ostetud."
+                )
+
+            mudel = GENERAATORID[generaatori_id]
+
+            ostuhind = mudel["hind"]
+
+            if self.raha < ostuhind:
+                raise ManguViga(
+                    "Generaatori ostmiseks pole piisavalt raha."
+                )
+
+            # Mängu päris alguses ostetud generaator
+            # toodab juba esimeses hinnaperioodis.
+            if (
+                self.mangitud_sekundid == 0
+                and not self.paev_labi
+            ):
+                esimene_periood = 0
+
+            else:
+                # Keset perioodi ostes ei saa mängija
+                # juba osaliselt möödunud aja eest toodangut.
+                esimene_periood = self.indeks + 1
+
+            # Jätame raha meelde, et andmebaasivea korral
+            # oleks võimalik ost tagasi võtta.
+            eelmine_raha = self.raha
+
+            # Arvestame ostuhinna mängijalt maha.
+            self.raha = round(
+                self.raha - ostuhind,
+                2
+            )
+
+            # Lisame generaatori mängija omandisse.
+            self.omatud_generaatorid[generaatori_id] = (
+                self.paevade_arv,
+                esimene_periood
+            )
+
+            try:
+                # Uuendame mängu vara väärtust statistikas.
+                self._salvesta_ajalugu()
+
+            except sqlite3.Error:
+                # Kui salvestamine ebaõnnestus,
+                # võtame ostu tagasi.
+                self.raha = eelmine_raha
+
+                del self.omatud_generaatorid[
+                    generaatori_id
+                ]
+
+                raise
+
+            # Tagastame serveris kinnitatud mänguseisu.
+            return self._seis()
 
     def osta_aku(self, aku_id):
         with self.lukk:
@@ -165,6 +277,8 @@ class Kauplemismang:
             int(self.mangitud_sekundid / PERIOODI_PIKKUS)
         )
 
+        self._arvesta_generaatorite_myyk()
+
         # Leiame suurima vara väärtuse ka vahepealsetel
         # hinnapunktidel, millest kell võis üle liikuda.
         tipp = max(
@@ -175,6 +289,121 @@ class Kauplemismang:
         # Salvestab ka lõpetatud mängupäeva.
         self._salvesta_ajalugu(tipp=round(tipp, 2))
 
+
+    def _arvesta_generaatorite_myyk(self):
+
+        if not self.hinnad:
+            return
+
+        # Kui mängupäev on läbi, on kõik 96 perioodi lõppenud.
+        if self.paev_labi:
+            viimane_loppenud = len(self.hinnad) - 1
+
+        else:
+            # Kui oleme jõudnud näiteks indeksini 5,
+            # siis hinnaperiood 4 on viimane lõppenud periood.
+            viimane_loppenud = self.indeks - 1
+
+        # Kui midagi uut pole lõppenud, pole vaja müüa.
+        if viimane_loppenud <= self.viimane_muudud_periood:
+            return
+
+        # Töötleme kõik veel müümata lõppenud perioodid.
+        for i in range(
+            self.viimane_muudud_periood + 1,
+            viimane_loppenud + 1
+        ):
+
+            # Selle konkreetse 15-minutilise perioodi börsihind.
+            hind = self.hinnad[i]["price"]
+
+            # Perioodi alguse Unix timestamp.
+            timestamp = self.hinnad[i]["timestamp"]
+
+            perioodi_energia = 0.0
+
+            # Käime kõik mängija generaatorid läbi.
+            for generaatori_id, ostu_info in (
+                self.omatud_generaatorid.items()
+            ):
+
+                ostupaev, esimene_periood = ostu_info
+
+                # Kui generaator osteti käesoleval mängupäeval,
+                # ei anna see varasemate perioodide eest tulu.
+                if (
+                    ostupaev == self.paevade_arv
+                    and i < esimene_periood
+                ):
+                    continue
+
+                # Arvutame ühe generaatori elektritoodangu.
+                toodang = perioodi_toodang(
+                    generaatori_id,
+                    timestamp
+                )
+
+                perioodi_energia += toodang
+
+            # ==========================================
+            # AUTOMAATNE MÜÜK
+            # ==========================================
+
+            # Müüme elektri selle perioodi hinnaga.
+            #
+            # Näide:
+            # 0.2 MWh * 70 €/MWh = 14 €
+            perioodi_tulu = round(
+                perioodi_energia * hind,
+                2
+            )
+
+            # Raha lisandub kohe serveripoolsele mänguseisule.
+            # Negatiivse elektrihinna korral võib tulu
+            # olla negatiivne.
+            self.raha = round(
+                self.raha + perioodi_tulu,
+                2
+            )
+
+            # Suurendame kogu mängu müügitulu.
+            self.generaatori_tulu = round(
+                self.generaatori_tulu + perioodi_tulu,
+                2
+            )
+
+            # Suurendame käesoleva päeva müügitulu.
+            self.paeva_generaatori_tulu = round(
+                self.paeva_generaatori_tulu + perioodi_tulu,
+                2
+            )
+
+            # Salvestame müüdud energiakogused.
+            self.generaatori_energia += perioodi_energia
+
+            self.paeva_generaatori_energia += (
+                perioodi_energia
+            )
+
+            # Märgime perioodi lõplikult arvestatuks.
+            #
+            # Tänu sellele ei saa sama perioodi
+            # elektrit teist korda müüa.
+            self.viimane_muudud_periood = i
+
+            # Viimase tegeliku tootmisega perioodi info.
+            if perioodi_energia > 0:
+
+                self.viimane_automaatselt_muudud = {
+                    "period_index": i,
+                    "timestamp": timestamp,
+                    "energy_MWh": round(
+                        perioodi_energia,
+                        4
+                    ),
+                    "price_EUR_MWh": hind,
+                    "revenue_EUR": perioodi_tulu
+                }
 
     def _seis(self):
         """Koostab mängija praeguse mänguseisu."""
@@ -213,6 +442,41 @@ class Kauplemismang:
             "max_trade_MWh": self.max_tehingu_maht,
             "battery_models": AKUD,
 
+
+            # Kõik poes müüdavad generaatorimudelid.
+            "generator_models": GENERAATORID,
+
+            # Mängijale kuuluvate generaatorite ID-d.
+            "owned_generators": sorted(
+                self.omatud_generaatorid
+            ),
+
+            # Kogu mängu jooksul teenitud generaatorite tulu.
+            "generator_revenue_total": self.generaatori_tulu,
+
+            # Ainult käesoleva päeva generaatorite tulu.
+            "generator_revenue_today": (
+                self.paeva_generaatori_tulu
+            ),
+
+            # Kogu mängu jooksul automaatselt müüdud energia.
+            "generator_energy_total_MWh": round(
+                self.generaatori_energia,
+                4
+            ),
+
+            # Käesoleva päeva automaatselt müüdud energia.
+            "generator_energy_today_MWh": round(
+                self.paeva_generaatori_energia,
+                4
+            ),
+
+            # Kõige hiljutisema automaatmüügi andmed.
+            "generator_last_sale": (
+                self.viimane_automaatselt_muudud
+            ),
+
+
             "initial_balance": self.algsumma,
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasum, 1),
@@ -241,6 +505,7 @@ class Kauplemismang:
                 "total": len(self.hinnad),
                 "index": self.indeks,
                 "unit": "EUR/MWh",
+                "state": self._seis(),
                 "prices": [
                     {
                         "timestamp": hind["timestamp"],
@@ -331,6 +596,17 @@ class Kauplemismang:
             self.energia = 0
             self.aktiivne_aku = 'starter'
             self.omatud_akud = {'starter'}
+
+            # Uue mängu alustamisel ei säili eelmise
+            # mängu päikesepargid ega tuulikud.
+            self.omatud_generaatorid = {}
+            self.viimane_muudud_periood = -1
+            self.generaatori_tulu = 0.0
+            self.generaatori_energia = 0.0
+            self.paeva_generaatori_tulu = 0.0
+            self.paeva_generaatori_energia = 0.0
+            self.viimane_automaatselt_muudud = None
+            
             self.aku_maht = AKUD[self.aktiivne_aku]['maht']
             self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
             self.max_tehingu_maht = self.aku_voimsus * 0.25
@@ -443,6 +719,16 @@ class Kauplemismang:
             self.indeks = 0
             self.paevade_arv += 1
             self.paeva_tehinguid = 0
+
+            # Uuel päeval alustame elektri müügi arvestamist
+            # uuesti 0. hinnaperioodist.
+            self.viimane_muudud_periood = -1
+
+            # Lähtestame ainult uue päeva näitajad.
+            self.paeva_generaatori_tulu = 0.0
+            self.paeva_generaatori_energia = 0.0
+            self.viimane_automaatselt_muudud = None
+
 
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
