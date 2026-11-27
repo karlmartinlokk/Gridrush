@@ -282,7 +282,9 @@ class Handler(SimpleHTTPRequestHandler):
             "/api/demo/resume",
             "/api/demo/pause",
             "/api/demo/speed",
-            "/api/demo/next-day"
+            "/api/demo/next-day",
+            "/api/demo/buy-battery",
+            "/api/demo/switch-battery"
         }
 
         if aadress not in lubatud:
@@ -337,7 +339,12 @@ class Handler(SimpleHTTPRequestHandler):
                     tulemus = mang.muuda_kiirust(
                         andmed.get("speed")
                     )
-
+                elif aadress == "/api/demo/buy-battery":
+                    mang.osta_aku(andmed.get("battery_id"))
+                    tulemus = mang.seis()
+                elif aadress == "/api/demo/switch-battery":
+                    mang.vaheta_aku(andmed.get("battery_id"))
+                    tulemus = mang.seis()           
                 else:
                     tulemus = mang.uus_paev()
 

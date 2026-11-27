@@ -6,10 +6,12 @@ from datetime import date
 from threading import Lock
 import sqlite3
 import secrets
+import math
 
 from gridrush.statistics import loo_mang, salvesta_seis
 from gridrush.db import loe_paev, saadaval_paevad
 from gridrush.day_filter import paeva_piirid
+from gridrush.batteries import AKUD, EFEKTIIVSUS
 
 
 # Üks mängupäev kestab tavakiirusel kolm minutit.
@@ -35,7 +37,14 @@ class Kauplemismang:
         self.algsumma = 1000.0
         self.raha = self.algsumma
         self.energia = 0
-        self.aku_maht = 10
+        self.aktiivne_aku = 'starter'
+        self.aku_maht = AKUD[self.aktiivne_aku]['maht']
+        self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
+        self.max_tehingu_maht = self.aku_voimsus * 0.25 
+        self.perioodi_tehingumaht = 0.0
+        self.viimane_tehinguperiood = None
+
+        self.omatud_akud = {'starter'}
 
         self.paev = None
         self.hinnad = []
@@ -71,6 +80,49 @@ class Kauplemismang:
             paeva_algvaartus=self.paeva_algvaartus,
             tehing=tehing
         )
+
+
+    def osta_aku(self, aku_id):
+        with self.lukk:
+            if not self.hinnad:
+                raise ManguViga("Mäng pole alustatud.")
+
+            if not isinstance(aku_id, str) or aku_id not in AKUD:
+                raise ManguViga("Sellist akut pole olemas.")
+
+            if aku_id in self.omatud_akud:
+                raise ManguViga("Sul on see aku juba olemas.")
+       
+            self._uuenda_kell()
+
+            aku_hind = AKUD[aku_id]['hind']
+
+            if self.raha < aku_hind:
+                raise ManguViga("Sul pole piisavalt raha selle aku ostmiseks.")
+
+            self.raha = round(self.raha - aku_hind, 2)
+            self.omatud_akud.add(aku_id)
+            return self._seis()
+
+
+    def vaheta_aku(self, aku_id):
+        with self.lukk:
+
+            if not isinstance(aku_id, str) or aku_id not in AKUD:
+                raise ManguViga("Sellist akut pole olemas.")
+
+            if aku_id not in self.omatud_akud:
+                raise ManguViga("See aku ei kuulu sulle.")
+
+            uue_aku_maht = AKUD[aku_id]['maht']
+
+            if self.energia > uue_aku_maht:
+                raise ManguViga("Energiat on uue aku jaoks liiga palju.")
+           
+            self.aktiivne_aku = aku_id
+            self.aku_maht = AKUD[self.aktiivne_aku]['maht']
+            self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus'] 
+            self.max_tehingu_maht = self.aku_voimsus * 0.25 
 
 
     def _uuenda_kell(self):
@@ -153,6 +205,13 @@ class Kauplemismang:
             "balance": round(self.raha, 2),
             "energy": self.energia,
             "capacity": self.aku_maht,
+
+            "active_battery": self.aktiivne_aku,
+            "owned_batteries": list(self.omatud_akud),
+            "battery_power": self.aku_voimsus,
+            "max_trade_MWh": self.max_tehingu_maht,
+            "battery_models": AKUD,
+
             "initial_balance": self.algsumma,
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasum, 1),
@@ -266,6 +325,13 @@ class Kauplemismang:
             self.indeks = 0
             self.raha = self.algsumma
             self.energia = 0
+            self.aktiivne_aku = 'starter'
+            self.omatud_akud = {'starter'}
+            self.aku_maht = AKUD[self.aktiivne_aku]['maht']
+            self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
+            self.max_tehingu_maht = self.aku_voimsus * 0.25
+            self.perioodi_tehingumaht = 0.0
+            self.viimane_tehinguperiood = None
 
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
@@ -389,9 +455,8 @@ class Kauplemismang:
             raise ManguViga("Tundmatu tehing.")
 
         if (
-            type(kogus) not in (float, int)
-            or not 0 < kogus <= self.aku_maht
-            or kogus % 0.5 != 0
+            type(kogus) not in (int, float) or not math.isfinite(kogus)
+            or not 0 < kogus <= self.aku_maht or kogus % 0.5 != 0
         ):
             raise ManguViga("Vigane elektrikogus.")
 
@@ -406,6 +471,16 @@ class Kauplemismang:
                     "Päev on lõppenud. Alusta uut päeva."
                 )
 
+            # Kontrollime, kas algas uus hinnaperiood.
+            praegune_periood = (self.paev, self.indeks)
+
+            if praegune_periood != self.viimane_tehinguperiood:
+                self.perioodi_tehingumaht = 0.0
+                self.viimane_tehinguperiood = praegune_periood
+
+            if self.perioodi_tehingumaht + kogus > self.max_tehingu_maht:
+                raise ManguViga("Aku võimsus ei võimalda sellel perioodil nii palju kaubelda.")
+            # Pausi ajal saab kaubelda peatatud hinnaga.
             hind = self.hinnad[self.indeks]["price"]
             summa = round(kogus * hind, 2)
 
@@ -437,6 +512,9 @@ class Kauplemismang:
                         "Akus pole piisavalt elektrit."
                     )
 
+                summa = round(kogus * hind * EFEKTIIVSUS, 2)
+               
+                # Negatiivse hinna puhul võib müümine maksta.
                 if self.raha + summa < -0.000001:
                     raise ManguViga(
                         "Müümiseks pole piisavalt raha."
@@ -466,6 +544,8 @@ class Kauplemismang:
                 self.raha = eelmine_raha
                 self.energia = eelmine_energia
                 raise
+
+            self.perioodi_tehingumaht += kogus
 
             vastus = self._seis()
             vastus["message"] = teade
