@@ -186,14 +186,14 @@ const achievementIcons = {
 };
 
 
-function looIkoon(nimi, klass) {
+function looSvgIkoon(nimi, klass) {
     const svgNimeruum = 'http://www.w3.org/2000/svg';
     const ikoon = document.createElementNS(svgNimeruum, 'svg');
     const viide = document.createElementNS(svgNimeruum, 'use');
 
     ikoon.setAttribute('class', klass);
     ikoon.setAttribute('aria-hidden', 'true');
-    viide.setAttribute('href', `img/achievements.svg#icon-${nimi}`);
+    viide.setAttribute('href', `img/icons/achievements.svg#icon-${nimi}`);
 
     ikoon.append(viide);
 
@@ -231,7 +231,7 @@ function naitaSaavutust(saavutus) {
     tekst.append(silt, nimi, kirjeldus);
 
     teade.append(
-        looIkoon(
+        looSvgIkoon(
             achievementIcons[saavutus.id] || 'trend',
             'achievement-popup-icon'
         ),
