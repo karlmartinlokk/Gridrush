@@ -11,11 +11,11 @@ Oluline arhitektuuriline otsus on eraldada hindade toorandmed, mängureeglid ja 
 | Fail või moodul | Vastutus | Kellega suhtleb? |
 |---|---|---|
 | `gridrush/fetch_day.py` | Küsib Eleringi hinnapäringuga andmed | Eleringi HTTPS API, `day_filter.py` |
-| `gridrush/day_filter.py` | Määrab Eesti päeva ajapiirid ning normaliseerib hinnad | `fetch_day.py`, `db.py`, `trading.py`, `sync_prices.py` |
-| `gridrush/db.py` | Hoiab hinnad SQLite'i tabelis, loeb valitud päeva | `trading.py`, `sync_prices.py` |
+| `gridrush/day_filter.py` | Määrab Eesti päeva ajapiirid ning normaliseerib hinnad | `fetch_day.py`, `db.py`, `game.py`, `sync_prices.py` |
+| `gridrush/db.py` | Hoiab hinnad SQLite'i tabelis, loeb valitud päeva | `game.py`, `sync_prices.py` |
 | `tools/sync_prices.py` | Laeb puuduvad päevad ja uuendab hinnabaasi | `db.py`, `fetch_day.py` |
-| `gridrush/trading.py` | Hoiab ühe mängija olekut ja otsustab tehingute tulemused | `db.py`, `day_filter.py`, server |
-| `tools/dev_server.py` | Teenindab staatilisi faile ning mängu JSON API | `trading.py`, brauser |
+| `gridrush/game.py` | Hoiab ühe mängija olekut ja otsustab tehingute tulemused | `db.py`, `day_filter.py`, server |
+| `tools/dev_server.py` | Teenindab staatilisi faile ning mängu JSON API | `game.py`, brauser |
 | `public_html/js/chart.js` | Joonistab graafiku ning juhib mänguaja kasutajaliidest | `/api/demo/prices`, `trading.js`, Chart.js |
 | `public_html/js/trading.js` | Kuvab raha ja akut, saadab ostu-müügi päringud | `/api/demo/*`, `chart.js` |
 | `public_html/index.html` ja CSS | Määravad kuvatavad elemendid ja nende kujunduse | `chart.js`, `trading.js` |
@@ -39,7 +39,7 @@ gridrush/db.py ── SQLite: data/gridrush.sqlite3
     │
     │ mängu alustamisel: sobiva päeva 96 hinda
     ⇓
-gridrush/trading.py ── ühe kasutaja mänguseis mälus
+gridrush/game.py ── ühe kasutaja mänguseis mälus
     │                   └─ raha, aku, kell, kiirus, hindade indeks
     ⇓
 tools/dev_server.py ── HTTP JSON API ja seansiküpsis
@@ -61,7 +61,7 @@ Brauser: chart.js + trading.js + Chart.js
 3. Kui mängu pole, saadab kasutajaliides `/api/demo/start`. Server loob `Kauplemismang` objekti, valib sobiva päeva ning väljastab seansiküpsise.
 4. `chart.js` küsib `/api/demo/prices`. Vastuses on 96 ajatemplit, aga ainult praeguseks avanenud hinnad; ülejäänud hinnaväärtused on `null`.
 5. `/api/demo/resume` käivitab mängukella. `chart.js` arvutab serveri kella lähtepunktist eeldatava nähtava indeksi ja küsib uue hinna, kui ajaperiood vahetub.
-6. Mängija teeb ostu või müügi. `trading.js` saadab `action` ja `quantity`; `trading.py` kontrollib need serveris ja saadab kinnitatud uue seisu.
+6. Mängija teeb ostu või müügi. `trading.js` saadab `action` ja `quantity`; `game.py` kontrollib need serveris ja saadab kinnitatud uue seisu.
 7. Kui 180 mängusekundit täitub, kinnitab brauser päeva lõpu serverilt. Päeva lõpu pop up aken võimaldab järgmise päeva alustamist.
 8. `/api/demo/next-day` säilitab raha, aku ja kiiruse, kuid vahetab päeva ning nullib päevakella.
 
@@ -71,5 +71,5 @@ Brauser: chart.js + trading.js + Chart.js
 - Elektrihindade ajatemplid on **Unixi sekundid UTC ajaskaalal**, Eesti kalendripäeva määramiseks kasutatakse `Europe/Tallinn` ajavööndit.
 - Hindade andmebaas kasutab ühikut **€/MWh**. Mängu energiaühik on **MWh**, rahaühik **€**.
 - Brauser ei saada tehingu hinda ega serveri hinnapunkti indeksit. Tehingu hind leitakse serveris.
-- `gridrush/trading.py` kasutab ühe mängu muutmiseks `threading.Lock` lukku; serveri seansside sõnastikul on eraldi lukk.
+- `gridrush/game.py` kasutab ühe mängu muutmiseks `threading.Lock` lukku; serveri seansside sõnastikul on eraldi lukk.
 - Mängupäeva fikseeritud kestus ja 96 perioodi piiravad mängitavate päevade valikut. Aja ülemineku päevad ei kuulu tavapärasesse 96-perioodilisse hulka.

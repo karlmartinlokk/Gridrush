@@ -149,13 +149,13 @@ Nendes käskudes tähendab `backfill` ajalooliste andmete täitmist ja `status` 
 - Ajatemplid on unikaalsed: primaarvõti.
 - Hinnaväärtus ei tohi olla SQL `NULL`: `NOT NULL`.
 - Terve mängupäev peab sisaldama täpselt 96 ootuspärase ajatempliga kirjet.
-- Kui päev pole täielik, ei saa `trading.py` seda mängupäevana avada (`ManguViga`).
+- Kui päev pole täielik, ei saa `game.py` seda mängupäevana avada (`ManguViga`).
 - Kellakeeramise eripäevad filtreeritakse välja, sest selles mängumudelis eeldatakse 96 perioodi.
 
 ## 7. Piirangud ja võimalikud parandused
 
 Praegune SQLite'i skeem on sihilikult väike. Näiteks puuduvad `source`, `region`, `last_updated`, hinna algse täpsuse ja salvestamishetke metaandmed. `saadaval_paevad()` loeb kõik ajatemplid Pythonisse; väikese õppemängu jaoks on see lihtne, kuid väga suure hinnabaasi korral võiks seda tulevikus optimeerida.
 
-**Tähtis eristus:** SQLite'i andmebaas on püsiv; `gridrush/trading.py` mänguseanss praegu ei ole. Mängija raha ja akut ei saa serveri restardi järel üksnes hinnatabeli põhjal taastada.
+**Tähtis eristus:** SQLite'i andmebaas on püsiv; `gridrush/game.py` mänguseanss praegu ei ole. Mängija raha ja akut ei saa serveri restardi järel üksnes hinnatabeli põhjal taastada.
 
 Seotud: [Eleringi andmed](02-eleringi-api-ja-andmed.md), [kauplemisloogika](05-kauplemisloogika.md).

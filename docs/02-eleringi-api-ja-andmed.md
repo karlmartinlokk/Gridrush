@@ -48,7 +48,7 @@ Tagastatava elemendi kuju:
 
 *Arvväärtus on näitlik; kood ei defineeri konkreetset hinda.*
 
-**Tähelepanek:** kui `kontrolli_taispaeva=False`, lubab see funktsioon tagastada ka osalise päeva. Mäng ise nõuab `trading.py` kaudu täielikku 96-punktilist päeva.
+**Tähelepanek:** kui `kontrolli_taispaeva=False`, lubab see funktsioon tagastada ka osalise päeva. Mäng ise nõuab `game.py` kaudu täielikku 96-punktilist päeva.
 
 ## 4. Päring Eleringisse – `fetch_day.py`
 

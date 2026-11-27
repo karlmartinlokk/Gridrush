@@ -4,7 +4,7 @@
 
 Elektrihindade mängus on ajahetk osa mängureeglitest: see määrab, milline hind on tehingu ajal kehtiv ja millised hinnad tohib graafikul avaldada. Kui brauser saaks ise öelda, et järgmine hinnaperiood on kätte jõudnud, oleks võimalik mängukella kiirendades hinnajadas ette liikuda. Seetõttu arvutab **tegeliku mänguaja ja indeksi Python**; JavaScript kasutab serveri aega ainult visuaalseks sünkroonimiseks.
 
-Serveri mängukella loogika on klassis `gridrush/trading.py::Kauplemismang`. Brauseripoolne vastavus on `public_html/js/chart.js` funktsioonides `synkroniseeriKell`, `praeguneManguaeg` ja `lisaPunkt`.
+Serveri mängukella loogika on klassis `gridrush/game.py::Kauplemismang`. Brauseripoolne vastavus on `public_html/js/chart.js` funktsioonides `synkroniseeriKell`, `praeguneManguaeg` ja `lisaPunkt`.
 
 ## 2. Ajamudeli konstandid
 
