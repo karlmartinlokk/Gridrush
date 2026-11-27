@@ -18,6 +18,17 @@ let laadimine = false;
 // Korraga küsime serverilt ainult ühe hindade uuenduse.
 let hindadeParing = null;
 
+// Serveri poolt avaldatud viimane hinnaindeks. Graafik (hetkeIndeks) võib sellest
+// lühikest aega maas olla, kui server annab korraga mitu uut punkti. Nii juhtub,
+// kui brauser aeglustab taimerit, näiteks siis, kui aken on teise all.
+let avaldatudIndeks = 0;
+let avamiseKaader = null;
+let viimaneAvamine = 0;
+
+// Kui maha jäänud punkte on rohkem, näitame need kohe ilma animatsioonita
+// ja animeerime ainult viimase. Muidu kestaks järele jõudmine liiga kaua.
+const SUJUVAID_PUNKTE_MAX = 5;
+
 // Päeva lõpus ootame mängija kinnitust enne järgmise päeva alustamist.
 let paevLabi = false;
 
@@ -119,7 +130,7 @@ window.synkroniseeriManguseis = seis => {
 
     // Kui tehing toimus uuel hinnaperioodil, küsime hinna serverilt.
     // Tulevase perioodi hind ei ole brauseri mälus ette olemas.
-    if (uusIndeks > hetkeIndeks ||
+    if (uusIndeks > avaldatudIndeks ||
         !Number.isFinite(hinnad[uusIndeks]?.price)) {
         void uuendaNahtavaidHindu().catch(viga => {
             window.kauplemine?.teata(`Viga: ${viga.message}`);
@@ -561,13 +572,13 @@ async function uuendaNahtavaidHindu() {
         ) return;
 
         hinnad = andmed.prices;
-        hetkeIndeks = andmed.index;
+        avaldatudIndeks = andmed.index;
 
-        chart.data.datasets[0].data = hinnad.map((punkt, indeks) =>
-            indeks <= hetkeIndeks ? punkt.price : null
-        );
-
-        kuvaSeis();
+        if (avaldatudIndeks > hetkeIndeks) {
+            if (avamiseKaader === null) naitaAvaldatudPunktid();
+        } else {
+            kuvaSeis();
+        }
     })();
 
     hindadeParing = paring;
@@ -578,6 +589,45 @@ async function uuendaNahtavaidHindu() {
         if (hindadeParing === paring) {
             hindadeParing = null;
         }
+    }
+}
+
+
+// Näitame serveri avaldatud punkte ükshaaval, et iga uus punkt
+// tuleks eelmise juurest, ka siis, kui server andis korraga mitu.
+// requestAnimationFrame ei jää nähtaval lehel maha nagu aeglustatud setTimeout,
+// ja peidetud lehel ootab see, kuni leht jälle nähtavale tuleb.
+function naitaAvaldatudPunktid(aeg = performance.now()) {
+    avamiseKaader = null;
+
+    if (!chart || hetkeIndeks >= avaldatudIndeks) return;
+
+    // Järgmine punkt tuleb poole hinnaperioodi pärast, kuid mitte harvem kui 300 ms järel.
+    if (aeg - viimaneAvamine < Math.min(300, TAVALINE_SAMM_MS / kiirus / 2)) {
+        avamiseKaader = requestAnimationFrame(naitaAvaldatudPunktid);
+        return;
+    }
+
+    if (avaldatudIndeks - hetkeIndeks > SUJUVAID_PUNKTE_MAX) {
+        const andmed = chart.data.datasets[0].data;
+
+        // Vahepealsed punktid ei tohi animeeruda graafiku alt üles.
+        for (let i = hetkeIndeks + 1; i < avaldatudIndeks; i++) {
+            andmed[i] = hinnad[i].price;
+            nahtudIndeksid.add(`x:${i}`);
+            nahtudIndeksid.add(`y:${i}`);
+        }
+
+        hetkeIndeks = avaldatudIndeks - 1;
+        chart.update('none');
+    }
+
+    hetkeIndeks++;
+    viimaneAvamine = aeg;
+    kuvaSeis();
+
+    if (hetkeIndeks < avaldatudIndeks) {
+        avamiseKaader = requestAnimationFrame(naitaAvaldatudPunktid);
     }
 }
 
@@ -601,7 +651,7 @@ function lisaPunkt() {
         Math.floor(sekundid / PERIOODI_PIKKUS_SEK)
     );
 
-    if (uusIndeks > hetkeIndeks && !hindadeParing) {
+    if (uusIndeks > avaldatudIndeks && !hindadeParing) {
         // Server otsustab, kas vastav hinnaperiood on saabunud.
         void uuendaNahtavaidHindu().catch(viga => {
             window.kauplemine?.teata(`Viga: ${viga.message}`);
@@ -864,6 +914,9 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
 
     hinnad = [];
     hetkeIndeks = 0;
+    avaldatudIndeks = 0;
+    cancelAnimationFrame(avamiseKaader);
+    avamiseKaader = null;
     nahtudIndeksid.clear();
     graafikuPaev = "";
 
@@ -907,6 +960,7 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
 
         hinnad = andmed.prices;
         hetkeIndeks = andmed.index;
+        avaldatudIndeks = andmed.index;
         graafikuPaev = andmed.date;
         nahtudIndeksid.clear();
 
