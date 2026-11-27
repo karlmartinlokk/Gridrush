@@ -112,6 +112,19 @@ class Handler(SimpleHTTPRequestHandler):
 
         self.uus_seanss = tunnus
 
+    def lopeta_mang(self):
+        """Lõpetab praeguse mängu"""
+
+        tunnus = self.loe_tunnus()
+
+        with seansid_lukk:
+            kirje = seansid.pop(tunnus, None) if tunnus else None
+
+        if kirje is not None:
+            kirje["game"].peata()
+
+        return {"active": False}
+
     def alusta_mang(self, andmed):
         """Alustab uut mängu või tagastab juba käimasoleva."""
 
@@ -278,6 +291,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         lubatud = {
             "/api/demo/start",
+            "/api/demo/reset",
             "/api/demo/trade",
             "/api/demo/resume",
             "/api/demo/pause",
@@ -313,6 +327,10 @@ class Handler(SimpleHTTPRequestHandler):
 
                 with start_lukk:
                     tulemus = self.alusta_mang(andmed)
+
+            elif aadress == "/api/demo/reset":
+                with start_lukk:
+                    tulemus = self.lopeta_mang()
 
             else:
                 # Otsime olemasolevat seanssi.

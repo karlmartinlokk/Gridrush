@@ -133,26 +133,13 @@ window.synkroniseeriManguseis = seis => {
 };
 
 
-// Hoiame meeles, kas mängija oli ise mängu pausile pannud.
-function salvestaMangijaSoov(kaib) {
-    try {
-        sessionStorage.setItem(
-            'gridrush_was_playing',
-            kaib ? '1' : '0'
-        );
-    } catch (_viga) {
-        // Salvestamise piirang ei tohi mängu peatada.
-    }
-}
-
-
-// Loeme mängija viimase salvestatud Play/Pause valiku.
-function eelmineMangijaSoov() {
-    try {
-        return sessionStorage.getItem('gridrush_was_playing');
-    } catch (_viga) {
-        return null;
-    }
+// Kuvame tühja graafiku teate, kuni mängija vajutab Play.
+function kuvaOotel() {
+    teadeAeg.textContent = "";
+    teade.textContent = "Vajuta Play";
+    teade.dataset.trend = 'Stabiilne';
+    teadeUhikud.textContent = "";
+    stats.textContent = "";
 }
 
 
@@ -261,10 +248,7 @@ function avaPaevaLopuTeavitus() {
     if (seis) {
         // Kuvame rahajäägi Eesti arvuvormingus.
         document.getElementById('day-end-balance').textContent =
-            `${seis.balance.toLocaleString('et-EE', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            })} €`;
+            vormindaEuro(seis.balance);
 
         // Kuvame salvestatud elektrienergia ja aku mahutavuse.
         document.getElementById('day-end-energy').textContent =
@@ -349,8 +333,6 @@ async function alustaUutPaeva() {
         paevLabi = false;
         paevaLopuDialog?.close();
 
-        salvestaMangijaSoov(true);
-
         // Graafik liigub edaspidi ilma iga hinnapunkti POST-päringuta.
         taimer = setInterval(
             lisaPunkt,
@@ -385,7 +367,7 @@ function uuendaNupud() {
     const lukus = kaivitamine || laadimine;
 
     playPauseNupp.disabled = lukus;
-    resetNupp.disabled = chart === null || lukus;
+    resetNupp.disabled = lukus;
 
     playPauseNupp.classList.toggle('playing', kaib);
 
@@ -501,7 +483,6 @@ async function kinnitaPaevaLopp() {
 
             // Server kinnitas päeva lõpu.
             paevLabi = true;
-            salvestaMangijaSoov(false);
             avaPaevaLopuTeavitus();
 
         } else if (seis.running) {
@@ -528,15 +509,10 @@ async function kinnitaPaevaLopp() {
 // Küsime serverilt ainult juba avanenud elektrihinnad.
 // Server ei väljasta tulevaste hinnaperioodide hindu.
 async function kysiNahtavadHinnad() {
-    const vastus = await fetch('/api/demo/prices', {
-        cache: 'no-store'
-    });
-
-    const andmed = await vastus.json();
-
-    if (!vastus.ok) {
-        throw new Error(andmed.error || 'Hindu ei saanud laadida.');
-    }
+    const andmed = await loeAPI(
+        '/api/demo/prices',
+        'Hindu ei saanud laadida.'
+    );
 
     // Server saadab 96 ajatemplit, kuid tulevased hinnad on null.
     if (
@@ -666,7 +642,6 @@ async function alustaGraafik({ automaatne = false } = {}) {
         }
 
         let seis;
-        let uusMang = false;
 
         if (automaatne) {
             // Lehe avamisel või brauseri vahemälust taastamisel
@@ -675,10 +650,13 @@ async function alustaGraafik({ automaatne = false } = {}) {
             // Seda ka siis, kui vana JS-i olek on mälus alles.
             seis = await window.kauplemine.taasta();
 
+            // Uus mäng algab alles Play vajutamisel.
             if (!seis) {
-                // Kui mängu ei leitud, alustame uut mängu.
-                seis = await window.kauplemine.alusta(undefined, true);
-                uusMang = true;
+                kuvaOotel();
+                window.kauplemine.teata(
+                    'Mängu alustamiseks vajuta mängi nuppu.'
+                );
+                return;
             }
 
         } else if (!window.kauplemine.aktiivne) {
@@ -687,8 +665,6 @@ async function alustaGraafik({ automaatne = false } = {}) {
             seis = await window.kauplemine.alusta(
                 chart ? kuupaev.value : undefined
             );
-
-            uusMang = true;
 
         } else {
             // Play-nupp jätkab olemasolevat mängu pausilt.
@@ -724,23 +700,15 @@ async function alustaGraafik({ automaatne = false } = {}) {
         // Päeva lõppedes ei alusta me automaatselt järgmist päeva.
         if (seis.day_finished) {
             paevLabi = true;
-            salvestaMangijaSoov(false);
             avaPaevaLopuTeavitus();
             return;
         }
 
         paevLabi = false;
 
-        // Kui mängija jättis mängu ise pausile,
-        // taastame mängu samamoodi pausil.
-        //
-        // Uus mäng käivitub ka siis, kui salvestatud
-        // pausimärge pärineb eelmisest mängust.
-        if (
-            automaatne &&
-            !uusMang &&
-            eelmineMangijaSoov() === '0'
-        ) {
+        // Lehe avamisel taastame mängu alati pausil.
+        // Graafik hakkab liikuma alles Play vajutamisel.
+        if (automaatne) {
             if (seis.running) {
                 seis = await window.kauplemine.peata();
 
@@ -749,7 +717,7 @@ async function alustaGraafik({ automaatne = false } = {}) {
             }
 
             window.kauplemine.teata(
-                'Eelmine mäng taastatud. Pausil.'
+                'Eelmine mäng taastatud. Vajuta Play.'
             );
             return;
         }
@@ -758,7 +726,6 @@ async function alustaGraafik({ automaatne = false } = {}) {
         seis = await window.kauplemine.jatka();
 
         synkroniseeriKell(seis);
-        salvestaMangijaSoov(true);
 
         // Kohalik taimer ainult joonistab hinnapunkte.
         // Iga punkti kohta ei tehta serveripäringut.
@@ -808,12 +775,10 @@ async function peataGraafik() {
         if (seis.day_finished) {
             // Kui päev lõppes peatamise ajal, näitame teavitust.
             paevLabi = true;
-            salvestaMangijaSoov(false);
             avaPaevaLopuTeavitus();
 
         } else {
             // Tavaline paus.
-            salvestaMangijaSoov(false);
             window.kauplemine.teata('Mäng on pausil.');
         }
 
@@ -853,10 +818,11 @@ function lulitaGraafik() {
 }
 
 
-// Reset alustab sama päeva uuesti ainult selle mängija mänguseansis.
+// Reset lõpetab kogu mängu. Mängija tunnus jääb küpsisesse alles,
+// nii et uus mäng läheb statistikas sama mängija alla.
+// Uus mäng algab alles Play vajutamisel.
 async function nulliGraafik() {
     if (
-        !chart ||
         kaivitamine ||
         sammKaib ||
         laadimine ||
@@ -867,33 +833,34 @@ async function nulliGraafik() {
 
     kaivitamine = true;
     uuendaNupud();
-    nahtudIndeksid.clear()
 
     try {
-        // Python nullib raha, aku ja mängukella.
-        const seis = await window.kauplemine.alusta(
-            kuupaev.value
-        );
+        await window.kauplemine.lahtesta();
 
-        synkroniseeriKell(seis);
+        // Pooleliolevad hinnapäringud ei tohi vana graafikut taastada.
+        paringuNumber++;
 
-        // Laeme reset'i järel uuesti ainult esimese avatud hinna.
-        // Eelmise mängu hinnad ei jää graafiku andmetesse alles.
-        const korras = await laadiGraafik({ sailitaMang: true });
-
-        if (!korras) {
-            throw new Error('Alguse hindu ei saanud laadida.');
+        if (chart) {
+            chart.destroy();
+            chart = null;
         }
 
-        kuvaSeis();
+        hinnad = [];
+        hetkeIndeks = 0;
+        nahtudIndeksid.clear();
+        graafikuPaev = "";
+        serveriSeis = null;
+        kellaKinnitus = null;
 
         // Reset tühistab päeva lõpu oleku.
         paevLabi = false;
-        salvestaMangijaSoov(false);
 
         if (paevaLopuDialog?.open) {
             paevaLopuDialog.close();
         }
+
+        paevadeLoendur.textContent = 'Päev -';
+        kuvaOotel();
 
         window.kauplemine.teata(
             'Mäng lähtestatud. Vajuta Play.'
@@ -933,7 +900,6 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
         }
 
         peataTaimer();
-        salvestaMangijaSoov(false);
 
         // Käsitsi valitud päeva käivitamisel loob Python uue mängu.
         window.kauplemine?.nulli();
@@ -1206,13 +1172,12 @@ window.addEventListener('load', () => {
 });
 
 
-// Lehelt lahkudes fikseerime, kas mäng oli käimas, ja palume serveril
-// see pausile panna. sendBeacon toimib ka lehe sulgemise ajal paremini
+// Lehelt lahkudes palume serveril käiva mängu pausile panna.
+// sendBeacon toimib ka lehe sulgemise ajal paremini
 // kui tavaline asünkroonne fetch, kuid kohalejõudmine pole garanteeritud.
 window.addEventListener('pagehide', () => {
     const oliKaimas = taimer !== null;
 
-    salvestaMangijaSoov(oliKaimas);
     peataTaimer();
 
     if (oliKaimas && window.kauplemine?.aktiivne) {

@@ -13,9 +13,6 @@ const arv = (vaartus, komakohad = 0) =>
         maximumFractionDigits: komakohad
     });
 
-const euro = vaartus =>
-    vaartus == null ? "-" : `${arv(vaartus, 2)} €`;
-
 const vormindaArv = vaartus =>
     Number(vaartus).toLocaleString("et-EE", {
         maximumFractionDigits: 2
@@ -35,7 +32,7 @@ const elektrihind = vaartus =>
 function margigaEuro(vaartus) {
     if (vaartus == null) return "-";
 
-    return `${vaartus > 0 ? "+" : ""}${euro(vaartus)}`;
+    return `${vaartus > 0 ? "+" : ""}${vormindaEuro(vaartus)}`;
 }
 
 
@@ -94,7 +91,7 @@ function kuvaStatistika(s) {
 
     kuvaVaartus(
         "stat-best-value",
-        s.games_started ? euro(s.best_value) : "-"
+        s.games_started ? vormindaEuro(s.best_value) : "-"
     );
 
     kuvaVaartus(
@@ -271,7 +268,7 @@ function looVaraGraafik(paevad, algus) {
                 ? "Mängu algus"
                 : "Vara väärtus";
 
-            return `${nimi}: ${euro(punkt.parsed.y)}`;
+            return `${nimi}: ${vormindaEuro(punkt.parsed.y)}`;
         }
     };
 
@@ -545,18 +542,10 @@ async function laadiStatistika() {
 
     try {
 
-        const vastus = await fetch(
+        const andmed = await loeAPI(
             `/api/stats?scope=${scope}`,
-            { cache: "no-store" }
+            "Statistika laadimine ebaõnnestus."
         );
-
-        const andmed = await vastus.json();
-
-        if (!vastus.ok) {
-            throw new Error(
-                andmed.error || "Statistika laadimine ebaõnnestus."
-            );
-        }
 
         // Väldime vanema päringu kuvamist.
         if (number !== paringuNumber) return;

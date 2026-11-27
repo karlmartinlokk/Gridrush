@@ -163,11 +163,25 @@ main {
 }
 
 .ri-battery .battery {
+  --type-color: var(--color-text-secondary);
   width: 12.5rem;
   max-width: 55%;
   min-width: 0;
   height: auto;
-  color: var(--color-text-secondary);
+  color: var(--type-color);
+}
+
+.ri-battery .battery.storage {
+  --type-color: var(--color-battery-storage);
+}
+
+.ri-battery .battery.power {
+  --type-color: var(--color-battery-power);
+}
+
+.ri-battery .battery.top-tier {
+  --type-color: var(--color-text-primary);
+  filter: drop-shadow(0 0 0.375rem rgb(226 229 232 / 0.35));
 }
 
 .battery-wire {
@@ -199,6 +213,21 @@ main {
 
 .battery.discharging ~ .battery-wire {
   animation: battery-wire-shine-move 1.6s linear infinite reverse;
+}
+
+.battery-label {
+  fill: currentColor;
+  opacity: 0.35;
+  font-size: 24px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.battery-label-dark {
+  fill: #0B1118;
+  opacity: 0.6;
 }
 
 .battery-percent {

@@ -19,12 +19,36 @@ poeRead.forEach(rida => {
 
 window.addEventListener('resize', () => poeRead.forEach(uuendaHajutust));
 
+function uuendaSeadistus(tulemus) {
+    const seis = tulemus.active ? tulemus : null;
 
-// Ostmine avab toote. Raha praegu maha ei arvestata.
+    kuvaParemPaneel(seis);
+    kuvaSeadistuseLaetus(seis);
+    kuvaOmatudAkud(seis);
+}
+
+
+// Aku ostu kinnitab server. Generaatorite ostmisel raha praegu maha ei arvestata.
 document.querySelectorAll('.store-buy').forEach(nupp => {
-    nupp.addEventListener('click', () => {
-        nupp.closest('.store-item').classList.remove('locked');
-        naitaGeneraatoreid();
+    nupp.addEventListener('click', async () => {
+        const kaart = nupp.closest('.store-item');
+
+        if (!kaart.dataset.batteryId) {
+            kaart.classList.remove('locked');
+            naitaGeneraatoreid();
+            return;
+        }
+
+        nupp.disabled = true;
+
+        try {
+            const andmed = { battery_id: kaart.dataset.batteryId };
+
+            uuendaSeadistus(await saadaAPI('/api/demo/buy-battery', andmed));
+            uuendaSeadistus(await saadaAPI('/api/demo/switch-battery', andmed));
+        } finally {
+            nupp.disabled = false;
+        }
     });
 });
 
@@ -34,15 +58,6 @@ const akud = document.querySelectorAll('.buy-batteries .store-item');
 // Loeb poe kaardilt valitud elemendi teksti.
 function loeTekst(kaart, valija) {
     return kaart.querySelector(valija).textContent;
-}
-
-// Määrab aku tüübi võimsuse ja mahutavuse suhte järgi.
-function leiaAkuTuup(mahutavus, voimsus) {
-    const suhe = voimsus / mahutavus;
-
-    if (suhe >= 1.5) return 'power';
-    if (suhe <= 0.6) return 'storage';
-    return 'balanced';
 }
 
 // Leiab veergude arvu, millega akuelemendid täidavad kõik read täielikult.
@@ -93,19 +108,36 @@ function naitaAkut(aku) {
 akud.forEach(aku => {
     aku.querySelector('.store-item-battery').innerHTML = looAkuJoonis(aku);
 
-    aku.addEventListener('click', () => {
-        if (aku.classList.contains('locked')) return;
+    aku.addEventListener('click', async () => {
+        if (aku.classList.contains('locked') || aku.classList.contains('selected')) return;
 
-        // Korraga saab valitud olla ainult üks aku.
-        akud.forEach(teineAku => {
-            teineAku.classList.toggle('selected', teineAku === aku);
-        });
-        naitaAkut(aku);
+        uuendaSeadistus(await saadaAPI('/api/demo/switch-battery', {
+            battery_id: aku.dataset.batteryId
+        }));
     });
 });
 
+let naidatudAku = null;
+
+function kuvaOmatudAkud(seis) {
+    const omatud = seis ? seis.owned_batteries : ['starter'];
+    const aktiivne = seis ? seis.active_battery : 'starter';
+
+    akud.forEach(aku => {
+        const id = aku.dataset.batteryId;
+
+        aku.classList.toggle('locked', !omatud.includes(id));
+        aku.classList.toggle('selected', id === aktiivne);
+    });
+
+    if (aktiivne === naidatudAku) return;
+
+    naidatudAku = aktiivne;
+    naitaAkut(document.querySelector(`.buy-batteries .store-item[data-battery-id="${aktiivne}"]`));
+}
+
 // Lehe avamisel kuvame vaikimisi valitud aku.
-naitaAkut(document.querySelector('.buy-batteries .store-item.selected'));
+kuvaOmatudAkud(null);
 
 
 // Kuvab ühes veerus ostetud generaatorid ja tagastab nende koguvõimsuse.

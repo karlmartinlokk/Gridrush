@@ -8,9 +8,6 @@ let eelvaade = null;
 
 // Leiame kasutajaliidese elemendid.
 const leia = valija => document.querySelector(valija);
-const euro = arv => arv.toLocaleString('et-EE', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2
-});
 const teata = tekst => leia('.event-container').textContent = tekst;
 const sammuNupud = document.querySelectorAll('.target-step-button');
 
@@ -44,11 +41,11 @@ function kuvaKauplemine() {
     if (!s) {
         vaartusElement.textContent = '- €';
     } else if (rahaMuutus === null) {
-        vaartusElement.textContent = `${euro(summa)} €`;
+        vaartusElement.textContent = vormindaEuro(summa);
     } else {
         const mark = rahaMuutus > 0 ? '+' : rahaMuutus < 0 ? '-' : '';
         vaartusElement.textContent =
-            `${mark}${euro(Math.abs(rahaMuutus))} €`;
+            `${mark}${vormindaEuro(Math.abs(rahaMuutus))}`;
     }
 
     vaartusElement.classList.toggle('gain', Boolean(s) && rahaMuutus > 0);
@@ -83,18 +80,8 @@ async function kauplemiseAPI(aadress, andmed = {}) {
     kuvaKauplemine();
 
     try {
-        const vastus = await fetch(aadress, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(andmed)
-        });
+        const tulemus = await saadaAPI(aadress, andmed);
 
-        const tulemus = await vastus.json();
-
-        if (!vastus.ok)
-            throw new Error(tulemus.error || 'Päring ebaõnnestus.');
-
-       
         // Salvestame Pythonist saadud mänguseisu.
         manguseis = tulemus;
 
@@ -136,17 +123,10 @@ async function taastaKauplemine() {
 
     try {
         // Küsime olemasoleva mänguseisu ilma seda muutmata.
-        const vastus = await fetch('/api/demo/state', {
-            cache: 'no-store'
-        });
-
-        const tulemus = await vastus.json();
-
-        if (!vastus.ok) {
-            throw new Error(
-                tulemus.error || 'Mänguseisu ei saanud taastada.'
-            );
-        }
+        const tulemus = await loeAPI(
+            '/api/demo/state',
+            'Mänguseisu ei saanud taastada.'
+        );
 
         // Kui mäng on olemas, salvestame serveri kinnitatud seisu.
         // Muidu jätame mänguseisu tühjaks.
@@ -160,6 +140,27 @@ async function taastaKauplemine() {
         kuvaKauplemine();
     }
 };
+
+
+// Lõpetame serveris praeguse mängu
+async function lahtestaKauplemine() {
+    if (paringKaib) {
+        throw new Error('Eelmine toiming on pooleli.');
+    }
+
+    paringKaib = true;
+    kuvaKauplemine();
+
+    try {
+        await saadaAPI('/api/demo/reset');
+
+    } finally {
+        paringKaib = false;
+        kuvaKauplemine();
+    }
+
+    window.kauplemine.nulli();
+}
 
 
 // Ostame või müüme valitud koguse elektrit.
@@ -259,6 +260,9 @@ window.kauplemine = {
         '/api/demo/start',
         { date: paev || null, only_if_missing: ainultPuudumisel }
     ),
+
+    // Lõpetab praeguse mängu.
+    lahtesta: lahtestaKauplemine,
 
     // Viimane teadaolev mänguseis
     get seis() {

@@ -159,13 +159,13 @@
                 <div class="store-section buy-batteries">
                     <h2 class="store-title">Akud</h2>
                     <div class="store-row">
-                        <div class="store-item selected">
+                        <div class="store-item selected" data-battery-id="starter">
                             <span class="store-item-name">Starter</span>
                             <span class="store-item-spec store-item-capacity">10 MWh</span>
                             <span class="store-item-spec store-item-power">10 MW</span>
                             <div class="store-item-battery"></div>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="basic">
                             <span class="store-item-name">Basic</span>
                             <span class="store-item-spec store-item-capacity">15 MWh</span>
                             <span class="store-item-spec store-item-power">12 MW</span>
@@ -173,7 +173,7 @@
                             <span class="store-item-price">1 500 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="storage">
                             <span class="store-item-name">Storage</span>
                             <span class="store-item-spec store-item-capacity">30 MWh</span>
                             <span class="store-item-spec store-item-power">10 MW</span>
@@ -181,7 +181,7 @@
                             <span class="store-item-price">4 000 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="rapid">
                             <span class="store-item-name">Rapid</span>
                             <span class="store-item-spec store-item-capacity">15 MWh</span>
                             <span class="store-item-spec store-item-power">30 MW</span>
@@ -189,7 +189,7 @@
                             <span class="store-item-price">5 000 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="advanced">
                             <span class="store-item-name">Advanced</span>
                             <span class="store-item-spec store-item-capacity">40 MWh</span>
                             <span class="store-item-spec store-item-power">40 MW</span>
@@ -197,7 +197,7 @@
                             <span class="store-item-price">10 000 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="mega_storage">
                             <span class="store-item-name">Mega Storage</span>
                             <span class="store-item-spec store-item-capacity">60 MWh</span>
                             <span class="store-item-spec store-item-power">25 MW</span>
@@ -205,7 +205,7 @@
                             <span class="store-item-price">15 000 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="hypercharge">
                             <span class="store-item-name">HyperCharge</span>
                             <span class="store-item-spec store-item-capacity">35 MWh</span>
                             <span class="store-item-spec store-item-power">70 MW</span>
@@ -213,7 +213,7 @@
                             <span class="store-item-price">22 000 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="industrial">
                             <span class="store-item-name">Industrial</span>
                             <span class="store-item-spec store-item-capacity">90 MWh</span>
                             <span class="store-item-spec store-item-power">45 MW</span>
@@ -221,7 +221,7 @@
                             <span class="store-item-price">32 000 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="ultragrid">
                             <span class="store-item-name">UltraGrid</span>
                             <span class="store-item-spec store-item-capacity">100 MWh</span>
                             <span class="store-item-spec store-item-power">100 MW</span>
@@ -229,7 +229,7 @@
                             <span class="store-item-price">50 000 €</span>
                             <button type="button" class="store-buy">Osta</button>
                         </div>
-                        <div class="store-item locked">
+                        <div class="store-item locked" data-battery-id="titan">
                             <span class="store-item-name">Titan</span>
                             <span class="store-item-spec store-item-capacity">160 MWh</span>
                             <span class="store-item-spec store-item-power">120 MW</span>
@@ -423,8 +423,10 @@
                         <rect x="198" y="34" width="10" height="32" rx="3" fill="currentColor"/>
                         <use href="#battery-lines" stroke="currentColor" stroke-opacity="0.3"/>
                         <rect id="battery-fill" class="battery-fill" x="8" y="8" width="0" height="84" rx="7" fill="url(#battery-fill-grad)"/>
+                        <text class="battery-label" x="100" y="50">Starter</text>
                         <g clip-path="url(#battery-clip)">
                             <use href="#battery-lines" stroke="#0B1118" stroke-opacity="0.45"/>
+                            <text class="battery-label battery-label-dark" x="100" y="50">Starter</text>
                             <rect class="battery-shine" x="-40" width="40" height="100" fill="url(#battery-shine-grad)"/>
                         </g>
                     </svg>
