@@ -243,9 +243,31 @@ def loe_statistika(player_id, game_id=None):
                     AND energy_after >= capacity - 0.000001
                     THEN 1 END) AS full_battery,
 
+
                 COUNT(CASE WHEN action = 'sell'
                     AND energy_after <= 0.000001
-                    THEN 1 END) AS empty_battery
+                    THEN 1 END) AS empty_battery,
+
+                COUNT(DISTINCT t.market_timestamp)
+                    AS trade_periods,
+
+                COUNT(DISTINCT CASE
+                    WHEN t.action = 'buy'
+                        AND t.energy_after >= t.capacity - 0.000001
+                    THEN t.market_timestamp
+                END) AS full_battery_periods,
+
+                COUNT(DISTINCT CASE
+                    WHEN t.action = 'sell'
+                        AND t.energy_after <= 0.000001
+                    THEN t.market_timestamp
+                END) AS empty_battery_periods,
+
+                COALESCE(SUM(CASE
+                    WHEN t.action = 'buy' AND t.price < 0
+                    THEN t.quantity ELSE 0
+                END), 0) AS negative_energy_bought
+
 
             FROM transactions t
             JOIN games g ON g.id = t.game_id
@@ -294,6 +316,8 @@ def loe_statistika(player_id, game_id=None):
     tulemus = {
         **dict(mangud),
         **dict(tehingud),
+
+        "play_minutes": mangud["play_seconds"] / 60,
 
         "days_played": len(paevad),
         "profitable_days": kasumlikud,
