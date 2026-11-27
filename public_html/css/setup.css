@@ -455,13 +455,6 @@
   color: var(--color-text-secondary);
 }
 
-.icon-sprite {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-
 .store-item-icon {
   position: absolute;
   right: 0.625rem;

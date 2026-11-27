@@ -50,6 +50,7 @@ class Kauplemismang:
         self.hinnad = []
         self.indeks = 0
         self.paevade_arv = 0
+        self.paeva_tehinguid = 0
 
         self.mangitud_sekundid = 0.0
         self.viimane_kell = None
@@ -215,6 +216,8 @@ class Kauplemismang:
             "initial_balance": self.algsumma,
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasum, 1),
+            "day_trades": self.paeva_tehinguid,
+            "day_profit": round(vara_vaartus - self.paeva_algvaartus, 2),
 
             "elapsed_seconds": round(self.mangitud_sekundid, 6),
             "speed": self.kiirus,
@@ -322,6 +325,7 @@ class Kauplemismang:
             self.paev = paev
             self.hinnad = hinnad
             self.paevade_arv = 1
+            self.paeva_tehinguid = 0
             self.indeks = 0
             self.raha = self.algsumma
             self.energia = 0
@@ -438,6 +442,7 @@ class Kauplemismang:
             self.hinnad = uued_hinnad
             self.indeks = 0
             self.paevade_arv += 1
+            self.paeva_tehinguid = 0
 
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
@@ -546,6 +551,7 @@ class Kauplemismang:
                 raise
 
             self.perioodi_tehingumaht += kogus
+            self.paeva_tehinguid += 1
 
             vastus = self._seis()
             vastus["message"] = teade

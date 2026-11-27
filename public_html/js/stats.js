@@ -437,14 +437,14 @@ function kuvaSaavutused(saavutused) {
                 "achievement-description",
                 saavutus.description
             ),
-            looIkoon(
+            looSvgIkoon(
                 achievementIcons[saavutus.id] || "trend",
                 "achievement-icon"
             )
         );
 
         if (saavutus.unlocked) {
-            kaart.append(looIkoon("check", "achievement-check"));
+            kaart.append(looSvgIkoon("check", "achievement-check"));
             return kaart;
         }
 
@@ -466,7 +466,7 @@ function kuvaSaavutused(saavutused) {
                 }`
             ),
             progress,
-            looIkoon("lock", "achievement-lock")
+            looSvgIkoon("lock", "achievement-lock")
         );
 
         return kaart;

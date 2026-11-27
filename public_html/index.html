@@ -25,33 +25,33 @@
         <ul class="sidebar">
             <li class="sidebar-logo">
                 <div class="logo">
-                    <img src="img/gridrush-logo-letters.svg" class="logo-letters" alt="">
-                    <img src="img/gridrush-logo-lines.svg" class="logo-lines" alt="">
-                    <img src="img/gridrush-logo-lines-compact.svg" class="logo-lines-compact" alt="">
-                    <img src="img/gridrush-logo-bolt.svg" alt="Gridrush">
+                    <img src="img/logo/gridrush-logo-letters.svg" class="logo-letters" alt="">
+                    <img src="img/logo/gridrush-logo-lines.svg" class="logo-lines" alt="">
+                    <img src="img/logo/gridrush-logo-lines-compact.svg" class="logo-lines-compact" alt="">
+                    <img src="img/logo/gridrush-logo-bolt.svg" alt="Gridrush">
                 </div>
             </li>
             <li class="sidebar-item">
                 <a href="./index.html">
-                    <img src="img/nav-simulation-icon.svg" alt="simulation icon">
+                    <img src="img/icons/nav-simulation-icon.svg" alt="simulation icon">
                     <span>Simulatsioon</span>
                 </a>
             </li>
             <li class="sidebar-item">
                 <a href="./setup.html">
-                    <img src="img/nav-setup-icon.svg" alt="setup icon">
+                    <img src="img/icons/nav-setup-icon.svg" alt="setup icon">
                     <span>Töölaud</span>
                 </a>
             </li>
             <li class="sidebar-item">
                 <a href="./stats.html">
-                <img src="img/nav-stats-icon.svg" alt="stats icon">
+                <img src="img/icons/nav-stats-icon.svg" alt="stats icon">
                 <span>Statistika</span>
                 </a>
             </li>
             <li class="sidebar-info">
                 <a href="./info.html">
-                    <img src="img/info.svg" alt="Info">
+                    <img src="img/icons/info.svg" alt="Info">
                     <span>Mängu kohta</span>
                 </a>
             </li>
@@ -82,7 +82,6 @@
 
                             </div>
                             <div class="controls">
-                                <button type="button" id="reset" disabled>Reset</button>
                                 <button type="button" id="play-pause" class="play-pause-button" aria-label="Käivita" disabled>
                                     <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
                                     <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
@@ -102,6 +101,13 @@
                             <div id="price-container">
                                 <canvas id="priceChart"></canvas>
                             </div>
+                        </div>
+
+                        <div id="day-end-overlay" class="day-end-overlay" hidden>
+                            <h2>Päev läbi</h2>
+                            <p id="day-end-summary" class="day-end-summary"></p>
+                            <button type="button" id="next-day-button">➤ Järgmine päev</button>
+                            <p id="day-end-error" role="alert"></p>
                         </div>
                 </div>
             </div>
@@ -176,57 +182,6 @@
             </div>
         </div>
     </main>
-
-
-
-
-    <!-- Päeva lõpu teavitusaken -->
-    <!-- Avaneb automaatselt, kui mäng jõuab päeva viimase hinnani -->
-    <dialog id="day-end-dialog" class="day-end-dialog">
-
-        <!-- Teavituse ikoon ja pealkiri -->
-        <div class="day-end-icon">✓</div>
-        <h2>Päev on lõppenud!</h2>
-
-        <!-- Selgitame mängijale, et tema mänguseis säilib -->
-        <p>
-            Simulatsioon on jõudnud päeva lõppu.
-            Sinu raha ja salvestatud elekter säilivad.
-        </p>
-
-        <!-- Näitame mängija viimast kinnitatud mänguseisu -->
-        <!-- Väärtused lisatakse JavaScriptiga Pythoni vastusest -->
-        <div class="day-end-stats">
-            <div>
-                <span>Rahajääk</span>
-                <strong id="day-end-balance">-</strong>
-            </div>
-
-            <div>
-                <span>Aku</span>
-                <strong id="day-end-energy">-</strong>
-            </div>
-
-            <div>
-                <span>Kasum / kahjum</span>
-                <strong id="day-end-profit">-</strong>
-            </div>
-        </div>
-
-        <!-- Kuvame veateate, kui järgmise päeva laadimine ebaõnnestub -->
-        <p id="day-end-error" role="alert"></p>
-
-        <!-- Mängija saab ise järgmise päeva käivitada -->
-        <button type="button" id="next-day-button">
-            Alusta uut päeva
-        </button>
-
-        <!-- Sulgeb teavituse ja jätab mängu pausile -->
-        <button type="button" id="later-button">
-            Jätka hiljem
-        </button>
-    </dialog>
-
 
 </body>
 

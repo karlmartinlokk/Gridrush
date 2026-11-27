@@ -1,4 +1,4 @@
-![Gridrush](public_html/img/gridrush-logo.png)
+![Gridrush](public_html/img/logo/gridrush-logo.png)
 
 Mathias Mander, Jaak Prommik, Karl-Martin Lokk
 

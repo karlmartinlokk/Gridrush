@@ -4,7 +4,7 @@
 
 Veebipoole peamised failid on `public_html/index.html`, `public_html/js/chart.js` ja `public_html/js/trading.js`. Graafik teostatakse välise **Chart.js** teegi abil. HTML sisaldab nuppe ja elemente, JavaScript loeb neid `id` või CSS-klassi järgi ning muudab sisu serverilt saadud mänguseisu põhjal.
 
-`chart.js` vastutab hinnagraafiku, kiiruse, Play/Pause'i, Reset'i, päeva lõpu dialoogi ja hinnapäringute eest. `trading.js` vastutab tehingukoguse, raha, aku, tehingusõnumite ja serverisse POST-päringute saatmise eest. Need kaks faili suhtlevad `window.kauplemine` objekti ja `window.synkroniseeriManguseis` funktsiooni kaudu.
+`chart.js` vastutab hinnagraafiku, kiiruse, Play/Pause'i, päeva lõpu katte ja hinnapäringute eest. `trading.js` vastutab tehingukoguse, raha, aku, tehingusõnumite ja serverisse POST-päringute saatmise eest. Need kaks faili suhtlevad `window.kauplemine` objekti ja `window.synkroniseeriManguseis` funktsiooni kaudu.
 
 ## 2. HTML-i tähtsad elemendid
 
@@ -15,14 +15,14 @@ Veebipoole peamised failid on `public_html/index.html`, `public_html/js/chart.js
 | `#graph-message-price` | Praegune hind ja selle tõusu/languse värv |
 | `#stats` | Seni nähtud hindade min, max ja keskmine |
 | `#date`, `#load` | Praeguse arendusversiooni käsitsi kuupäevavalik |
-| `#play-pause`, `#reset` | Mängu juhtimine |
+| `#play-pause` | Mängu juhtimine (Reset on info lehel, `info.js`) |
 | `.speed-buttons button` | Kiiruse valikud 0.5×, 1×, 2×, 5× |
 | `#day-count` | Järjestikuse mängupäeva number |
 | `.battery-buy-button`, `.battery-sell-button` | Osta ja müü tehingu käivitamine |
 | `.target-step-button`, `.target-amount` | Ostetava/müüdava koguse valimine MWh-des |
 | `.target-value` | Tehingu summa või hõljumisel rahalise muutuse eelvaade |
 | `.ri-money-sum`, `.battery-percent`, `.battery-capacity` | Rahajääk, aku täituvus ja salvestatud MWh |
-| `#day-end-dialog` | Päeva lõpu kokkuvõte ja uue päeva nupp |
+| `#day-end-overlay` | Päeva lõpus graafikut kattev kiht "Päev läbi" ja "Järgmine päev" nupuga |
 | `.event-container` | Kasutajale kuvatavad sündmused ja veateated |
 
 Kuupäevavalik on **praeguses koodis olemas**. Kui see enne avalikku juurutamist eemaldatakse, tuleb muuta ka vastavad JavaScripti viited ja kuupäeva lubamine serveri `/start` API-s.
