@@ -142,6 +142,27 @@ async function taastaKauplemine() {
 };
 
 
+// Lõpetame serveris praeguse mängu
+async function lahtestaKauplemine() {
+    if (paringKaib) {
+        throw new Error('Eelmine toiming on pooleli.');
+    }
+
+    paringKaib = true;
+    kuvaKauplemine();
+
+    try {
+        await saadaAPI('/api/demo/reset');
+
+    } finally {
+        paringKaib = false;
+        kuvaKauplemine();
+    }
+
+    window.kauplemine.nulli();
+}
+
+
 // Ostame või müüme valitud koguse elektrit.
 async function teeTehing(tegevus) {
     try {
@@ -239,6 +260,9 @@ window.kauplemine = {
         '/api/demo/start',
         { date: paev || null, only_if_missing: ainultPuudumisel }
     ),
+
+    // Lõpetab praeguse mängu.
+    lahtesta: lahtestaKauplemine,
 
     // Viimane teadaolev mänguseis
     get seis() {
