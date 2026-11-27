@@ -38,6 +38,16 @@ function vormindaEuro(summa) {
 }
 
 
+// Määrab aku tüübi võimsuse ja mahutavuse suhte järgi.
+function leiaAkuTuup(mahutavus, voimsus) {
+    const suhe = voimsus / mahutavus;
+
+    if (suhe >= 1.5) return 'power';
+    if (suhe <= 0.6) return 'storage';
+    return 'balanced';
+}
+
+
 // Kuvab mänguseisu parempoolses paneelis. Kui mängu pole alustatud, on s null.
 function kuvaParemPaneel(s) {
     const leiaElement = valija => document.querySelector(valija);
@@ -51,6 +61,19 @@ function kuvaParemPaneel(s) {
 
     leiaElement('.battery-capacity').textContent =
         s ? `${s.energy} / ${s.capacity} MWh` : '0 / 10 MWh';
+
+    const akuNimi = s ? s.battery_models[s.active_battery].nimi : 'Starter';
+
+    document.querySelectorAll('.battery-label').forEach(silt => {
+        silt.textContent = akuNimi;
+    });
+
+    const akuIkoon = leiaElement('.ri-battery .battery');
+    const tuup = s ? leiaAkuTuup(s.capacity, s.battery_power) : 'balanced';
+
+    akuIkoon.classList.remove('balanced', 'storage', 'power');
+    akuIkoon.classList.add(tuup);
+    akuIkoon.classList.toggle('top-tier', Boolean(s) && s.capacity >= 100);
 
     // Täis aku täidise laius SVG-s on 184 ühikut.
     leiaElement('#battery-fill').setAttribute(
@@ -114,6 +137,7 @@ async function laadiParemPaneel() {
         kuvaParemPaneel(seis);
         kuvaPaevadeLoendur(seis);
         kuvaSeadistuseLaetus(seis);
+        if (typeof kuvaOmatudAkud === 'function') kuvaOmatudAkud(seis);
         return seis;
 
     } catch {

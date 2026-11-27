@@ -48,11 +48,11 @@
 }
 
 .battery-art.storage {
-  --type-color: #6aa5f0;
+  --type-color: var(--color-battery-storage);
 }
 
 .battery-art.power {
-  --type-color: #b58cf0;
+  --type-color: var(--color-battery-power);
 }
 
 .battery-art.top-tier {
