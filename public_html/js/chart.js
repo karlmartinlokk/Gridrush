@@ -261,10 +261,7 @@ function avaPaevaLopuTeavitus() {
     if (seis) {
         // Kuvame rahajäägi Eesti arvuvormingus.
         document.getElementById('day-end-balance').textContent =
-            `${seis.balance.toLocaleString('et-EE', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            })} €`;
+            vormindaEuro(seis.balance);
 
         // Kuvame salvestatud elektrienergia ja aku mahutavuse.
         document.getElementById('day-end-energy').textContent =
@@ -528,15 +525,10 @@ async function kinnitaPaevaLopp() {
 // Küsime serverilt ainult juba avanenud elektrihinnad.
 // Server ei väljasta tulevaste hinnaperioodide hindu.
 async function kysiNahtavadHinnad() {
-    const vastus = await fetch('/api/demo/prices', {
-        cache: 'no-store'
-    });
-
-    const andmed = await vastus.json();
-
-    if (!vastus.ok) {
-        throw new Error(andmed.error || 'Hindu ei saanud laadida.');
-    }
+    const andmed = await loeAPI(
+        '/api/demo/prices',
+        'Hindu ei saanud laadida.'
+    );
 
     // Server saadab 96 ajatemplit, kuid tulevased hinnad on null.
     if (

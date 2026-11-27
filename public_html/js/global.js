@@ -1,16 +1,50 @@
 // Simulatsiooni, seadistuse ja statistika lehe ühine kood: parempoolne paneel (raha, kasum, aku) ja saavutuste teavitused.
 // Autor: Karl-Martin Lokk
 
+async function loeAPI(aadress, veateade = 'Päring ebaõnnestus.') {
+    const vastus = await fetch(aadress, { cache: 'no-store' });
+    const tulemus = await vastus.json();
+
+    if (!vastus.ok)
+        throw new Error(tulemus.error || veateade);
+
+    return tulemus;
+}
+
+
+async function saadaAPI(aadress, andmed = {}) {
+    const vastus = await fetch(aadress, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(andmed)
+    });
+
+    const tulemus = await vastus.json();
+
+    if (!vastus.ok)
+        throw new Error(tulemus.error || 'Päring ebaõnnestus.');
+
+    return tulemus;
+}
+
+
+function vormindaEuro(summa) {
+    if (summa == null) return '-';
+
+    return `${Number(summa).toLocaleString('et-EE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })} €`;
+}
+
+
 // Kuvab mänguseisu parempoolses paneelis. Kui mängu pole alustatud, on s null.
 function kuvaParemPaneel(s) {
     const leiaElement = valija => document.querySelector(valija);
-    const eurodes = arv => arv.toLocaleString('et-EE', {
-        minimumFractionDigits: 2, maximumFractionDigits: 2
-    });
 
     // Rahajääk ja aku täituvus
     leiaElement('.ri-money-sum span').textContent =
-        s ? `${eurodes(s.balance)} €` : '- €';
+        s ? vormindaEuro(s.balance) : '- €';
 
     leiaElement('.battery-percent').textContent =
         s ? `${Math.round(s.energy / s.capacity * 100)}%` : '0%';
@@ -74,9 +108,8 @@ function kuvaSeadistuseLaetus(s) {
 // Küsib serverilt mänguseisu ja uuendab kõiki paneele.
 async function laadiParemPaneel() {
     try {
-        const vastus = await fetch('/api/demo/state', { cache: 'no-store' });
-        const tulemus = await vastus.json();
-        const seis = vastus.ok && tulemus.active ? tulemus : null;
+        const tulemus = await loeAPI('/api/demo/state');
+        const seis = tulemus.active ? tulemus : null;
 
         kuvaParemPaneel(seis);
         kuvaPaevadeLoendur(seis);
@@ -225,11 +258,7 @@ function kasitleSaavutusi(saavutused) {
 
 async function kontrolliSaavutusi() {
     try {
-        const vastus = await fetch('/api/stats?scope=all', { cache: 'no-store' });
-
-        if (!vastus.ok) return;
-
-        const andmed = await vastus.json();
+        const andmed = await loeAPI('/api/stats?scope=all');
         kasitleSaavutusi(andmed.achievements);
     } catch {}
 }
