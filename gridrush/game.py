@@ -44,6 +44,7 @@ class Kauplemismang:
         self.perioodi_tehingumaht = 0.0
         self.viimane_tehinguperiood = None
         self.ootel_korraldus = None
+        self.korralduse_teade = None
 
         self.omatud_akud = {'starter'}
 
@@ -97,6 +98,9 @@ class Kauplemismang:
 
             self._uuenda_kell()
 
+            if self.ootel_korraldus is not None:
+                raise ManguViga("Akut ei saa osta, kuni korraldus on ootel.")
+
             aku_hind = AKUD[aku_id]['hind']
 
             if self.raha < aku_hind:
@@ -115,6 +119,11 @@ class Kauplemismang:
 
             if aku_id not in self.omatud_akud:
                 raise ManguViga("See aku ei kuulu sulle.")
+
+            self._uuenda_kell()
+
+            if self.ootel_korraldus is not None:
+                raise ManguViga("Akut ei saa vahetada, kuni korraldus on ootel.")
 
             uue_aku_maht = AKUD[aku_id]['maht']
 
@@ -137,8 +146,6 @@ class Kauplemismang:
             self.viimane_tehinguperiood = praegune_periood
 
         vaba_maht = max(0.0, self.max_tehingu_maht - self.perioodi_tehingumaht)
-
-        kogus = min(0.0, self.max_tehingu_maht - self.perioodi_tehingumaht)
 
         kogus = min(self.ootel_korraldus['kogus_alles'], vaba_maht)
 
@@ -185,7 +192,6 @@ class Kauplemismang:
             self.energia = eelmine_energia
             raise
         self.perioodi_tehingumaht += kogus
-        self.paeva_tehinguid += 1
 
 
     def _taida_ootel_korraldus(self, *, anna_viga=False):
@@ -202,11 +208,15 @@ class Kauplemismang:
         try:
             self._teosta_osatehing(tegevus, kogus)
 
-        except ManguViga:
+        except ManguViga as viga:
             # Kui tehing ebaõnnestub, tühistame ootel korralduse.
+            alles = self.ootel_korraldus['kogus_alles']
             self.ootel_korraldus = None
             if anna_viga:
                 raise
+            self.korralduse_teade = (
+                f'Korraldus tühistati: {viga} {alles} MWh jäi täitmata.'
+            )
             return
         self.ootel_korraldus['kogus_alles'] = round(
             self.ootel_korraldus['kogus_alles'] - kogus, 6
@@ -279,6 +289,12 @@ class Kauplemismang:
             self.paev_labi = True
             self.kaib = False
             self.viimane_kell = None
+
+            if self.ootel_korraldus is not None:
+                alles = self.ootel_korraldus['kogus_alles']
+                self.korralduse_teade = (
+                    f'Päev lõppes, {alles} MWh jäi täitmata.'
+                )
             self.ootel_korraldus = None
 
         self._salvesta_ajalugu(tipp=round(tipp, 2))
@@ -367,7 +383,13 @@ class Kauplemismang:
 
             self._uuenda_kell()
 
-            return self._seis()
+            vastus = self._seis()
+
+            if self.korralduse_teade is not None:
+                vastus['order_notice'] = self.korralduse_teade
+                self.korralduse_teade = None
+
+            return vastus
 
     def _loe_taispaev(self, paev):
         """Laeb ja kontrollib ühe päeva kõik 96 hinnaperioodi."""
@@ -445,6 +467,7 @@ class Kauplemismang:
             self.perioodi_tehingumaht = 0.0
             self.viimane_tehinguperiood = None
             self.ootel_korraldus = None
+            self.korralduse_teade = None
 
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
@@ -583,9 +606,11 @@ class Kauplemismang:
                     "Päev on lõppenud."
                 )
 
-            # Kui on juba ootel korraldus, tühistame selle.
+            # Uut korraldust ei saa luua, kuni eelmine on täitmata.
             if self.ootel_korraldus is not None:
                 raise ManguViga("Eelmine korraldus on juba olemas.")
+
+            self.korralduse_teade = None
 
             if kogus > self.aku_maht:
                 raise ManguViga("Kogus ületab aku mahutavuse.")
@@ -608,15 +633,39 @@ class Kauplemismang:
             except Exception:
                 self.ootel_korraldus = None
                 raise
+            self.paeva_tehinguid += 1
+
             alles = (self.ootel_korraldus['kogus_alles']
                 if self.ootel_korraldus is not None
                 else 0.0
             )
 
             vastus = self._seis()
-            vastus['message'] = (
-                f'Korraldus {kogus} MWh vastu võetud,'
-                f' {alles} MWh.'
-             )
+
+            if alles > 0:
+                vastus['message'] = (
+                    f'Korraldus {kogus} MWh vastu võetud,'
+                    f' {alles} MWh ootel.'
+                )
+            else:
+                vastus['message'] = f'Korraldus {kogus} MWh täidetud.'
+
+            return vastus
+
+    def tuhista_korraldus(self):
+        with self.lukk:
+            if not self.hinnad:
+                raise ManguViga("Mäng pole alustatud.")
+
+            self._uuenda_kell()
+
+            if self.ootel_korraldus is None:
+                raise ManguViga("Ootel korraldust pole.")
+
+            alles = self.ootel_korraldus['kogus_alles']
+            self.ootel_korraldus = None
+
+            vastus = self._seis()
+            vastus['message'] = f'Korraldus peatatud, {alles} MWh jäi täitmata.'
 
             return vastus

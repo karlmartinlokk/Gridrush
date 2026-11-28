@@ -293,6 +293,7 @@ class Handler(SimpleHTTPRequestHandler):
             "/api/demo/start",
             "/api/demo/reset",
             "/api/demo/trade",
+            "/api/demo/cancel-order",
             "/api/demo/resume",
             "/api/demo/pause",
             "/api/demo/speed",
@@ -346,6 +347,9 @@ class Handler(SimpleHTTPRequestHandler):
                         andmed.get("action"),
                         andmed.get("quantity")
                     )
+
+                elif aadress == "/api/demo/cancel-order":
+                    tulemus = mang.tuhista_korraldus()
 
                 elif aadress == "/api/demo/resume":
                     tulemus = mang.jatka()

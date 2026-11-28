@@ -30,35 +30,53 @@ function kuvaKauplemine() {
     // Arvutame valitud koguse väärtuse hetkehinnaga.
     const summa = s ? kogus * s.price : 0;
 
-    // Hõljumisel näitame kui palju raha muutuks nupuvajutusel
+    // Ootel korralduse suund ('buy' või 'sell'), muidu null.
+    const ootel = s?.pending_order?.tegevus ?? null;
+
+    // Hõljumisel näitame kui palju raha muutuks nupuvajutusel.
+    // PEATA nupu peal eelvaadet pole, sest see ei tee uut tehingut.
     const rahaMuutus =
+        ootel ? null :
         eelvaade === 'buy' ? -summa :
         eelvaade === 'sell' ? summa : null;
 
     const vaartusElement = leia('.target-value');
 
+    // Üle ühe perioodi piiri jagatakse korraldus osadeks,
+    // mis täituvad järgmiste perioodide hinnaga.
+    const ligikaudne = s && kogus > s.max_trade_MWh ? '≈ ' : '';
+
     // Eelvaates lisame summale märgi, muidu kuvame tehingu väärtuse.
     if (!s) {
         vaartusElement.textContent = '- €';
     } else if (rahaMuutus === null) {
-        vaartusElement.textContent = vormindaEuro(summa);
+        vaartusElement.textContent = `${ligikaudne}${vormindaEuro(summa)}`;
     } else {
         const mark = rahaMuutus > 0 ? '+' : rahaMuutus < 0 ? '-' : '';
         vaartusElement.textContent =
-            `${mark}${vormindaEuro(Math.abs(rahaMuutus))}`;
+            `${ligikaudne}${mark}${vormindaEuro(Math.abs(rahaMuutus))}`;
     }
 
     vaartusElement.classList.toggle('gain', Boolean(s) && rahaMuutus > 0);
     vaartusElement.classList.toggle('loss', Boolean(s) && rahaMuutus < 0);
 
+    const ostuNupp = leia('.battery-buy-button');
+    const myygiNupp = leia('.battery-sell-button');
+
+    // Ootel korralduse suunaga nupp muutub PEATA nupuks.
+    ostuNupp.textContent = ootel === 'buy' ? 'PEATA' : 'OSTA';
+    myygiNupp.textContent = ootel === 'sell' ? 'PEATA' : 'MÜÜ';
+    ostuNupp.setAttribute('aria-pressed', String(ootel === 'buy'));
+    myygiNupp.setAttribute('aria-pressed', String(ootel === 'sell'));
+
     // Keelame nupud, kui aku mahust, energiast või rahast ei piisa.
-    leia('.battery-buy-button').disabled =
-        !s || paringKaib || Boolean(s.pending_order) ||
+    ostuNupp.disabled = ootel === 'buy' ? paringKaib :
+        !s || paringKaib || Boolean(ootel) ||
         s.energy + kogus > s.capacity ||
         s.balance - summa < -0.000001;
 
-    leia('.battery-sell-button').disabled =
-        !s || paringKaib || Boolean(s.pending_order) ||
+    myygiNupp.disabled = ootel === 'sell' ? paringKaib :
+        !s || paringKaib || Boolean(ootel) ||
         s.energy < kogus ||
         s.balance + summa < -0.000001;
 
@@ -132,6 +150,9 @@ async function taastaKauplemine() {
         // Muidu jätame mänguseisu tühjaks.
         manguseis = tulemus.active ? tulemus : null;
 
+        // Server teatab, kui korraldus tühistati mängukella käigus.
+        if (tulemus.order_notice) teata(tulemus.order_notice);
+
         return manguseis;
 
     } finally {
@@ -170,6 +191,17 @@ async function teeTehing(tegevus) {
 }
 
 
+// Peatame ootel korralduse, juba täidetud osad jäävad kehtima.
+async function peataKorraldus() {
+    try {
+        const tulemus = await kauplemiseAPI('/api/demo/cancel-order');
+        teata(tulemus.message);
+    } catch (viga) {
+        teata(`Viga: ${viga.message}`);
+    }
+}
+
+
 // Suured nupud muudavad kogust 10 kaupa, väikesed 0,5 kaupa.
 sammuNupud.forEach(nupp => {
     nupp.addEventListener('click', () => {
@@ -187,12 +219,21 @@ sammuNupud.forEach(nupp => {
 
 
 // Seome OSTA ja MÜÜ nupud Pythoni tehingutega.
+// Kui sama suuna korraldus on ootel, peatab nupp selle.
+function nupuVajutus(tegevus) {
+    if (manguseis?.pending_order?.tegevus === tegevus) {
+        peataKorraldus();
+    } else {
+        teeTehing(tegevus);
+    }
+}
+
 leia('.battery-buy-button').addEventListener(
-    'click', () => teeTehing('buy')
+    'click', () => nupuVajutus('buy')
 );
 
 leia('.battery-sell-button').addEventListener(
-    'click', () => teeTehing('sell')
+    'click', () => nupuVajutus('sell')
 );
 
 
