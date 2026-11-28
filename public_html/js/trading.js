@@ -5,6 +5,7 @@ let manguseis = null;
 let kogus = 1;
 let paringKaib = false;
 let eelvaade = null;
+let hetkeAnimatsioon = null;
 
 // Leiame kasutajaliidese elemendid.
 const leia = valija => document.querySelector(valija);
@@ -68,6 +69,13 @@ function kuvaKauplemine() {
     myygiNupp.textContent = ootel === 'sell' ? 'PEATA' : 'MÜÜ';
     ostuNupp.setAttribute('aria-pressed', String(ootel === 'buy'));
     myygiNupp.setAttribute('aria-pressed', String(ootel === 'sell'));
+
+    // Aku animatsioon käib terve ootel korralduse aja.
+    const animatsioon = ootel ?? hetkeAnimatsioon;
+    const aku = leia('.battery');
+
+    aku.classList.toggle('charging', animatsioon === 'buy');
+    aku.classList.toggle('discharging', animatsioon === 'sell');
 
     // Keelame nupud, kui aku mahust, energiast või rahast ei piisa.
     ostuNupp.disabled = ootel === 'buy' ? paringKaib :
@@ -173,17 +181,17 @@ async function teeTehing(tegevus) {
 
         teata(tulemus.message);
 
-        // Näitame hetkeks aku laadimise või tühjendamise animatsiooni.
-        const aku = leia('.battery');
+        // Kohe täitunud korralduse puhul näitame animatsiooni hetkeks.
+        // Ootel korralduse animatsiooni hoiab käigus kuvaKauplemine.
+        if (!tulemus.pending_order) {
+            hetkeAnimatsioon = tegevus;
+            kuvaKauplemine();
 
-        aku.classList.remove('charging', 'discharging');
-        aku.classList.add(
-            tegevus === 'buy' ? 'charging' : 'discharging'
-        );
-
-        setTimeout(() => {
-            aku.classList.remove('charging', 'discharging');
-        }, 800);
+            setTimeout(() => {
+                hetkeAnimatsioon = null;
+                kuvaKauplemine();
+            }, 800);
+        }
 
     } catch (viga) {
         teata(`Viga: ${viga.message}`);
@@ -337,10 +345,7 @@ kuvaHind: (hind, indeks) => {
 
         manguseis = null;
         kogus = 1;
-
-        leia('.battery').classList.remove(
-            'charging', 'discharging'
-        );
+        hetkeAnimatsioon = null;
 
         kuvaKauplemine();
         teata('Mängu alustamiseks vajuta Play.');

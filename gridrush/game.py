@@ -53,6 +53,7 @@ class Kauplemismang:
         self.indeks = 0
         self.paevade_arv = 0
         self.paeva_tehinguid = 0
+        self.tehingupunktid = {}
 
         self.mangitud_sekundid = 0.0
         self.viimane_kell = None
@@ -192,6 +193,7 @@ class Kauplemismang:
             self.energia = eelmine_energia
             raise
         self.perioodi_tehingumaht += kogus
+        self.tehingupunktid[self.indeks] = tegevus
 
 
     def _taida_ootel_korraldus(self, *, anna_viga=False):
@@ -340,6 +342,7 @@ class Kauplemismang:
             "asset_value": round(vara_vaartus, 2),
             "profit_percent": round(kasum, 1),
             "day_trades": self.paeva_tehinguid,
+            "trade_points": dict(self.tehingupunktid),
             "day_profit": round(vara_vaartus - self.paeva_algvaartus, 2),
             'pending_order': (dict(self.ootel_korraldus) if self.ootel_korraldus is not None else None),
 
@@ -456,6 +459,7 @@ class Kauplemismang:
             self.hinnad = hinnad
             self.paevade_arv = 1
             self.paeva_tehinguid = 0
+            self.tehingupunktid = {}
             self.indeks = 0
             self.raha = self.algsumma
             self.energia = 0
@@ -575,6 +579,7 @@ class Kauplemismang:
             self.indeks = 0
             self.paevade_arv += 1
             self.paeva_tehinguid = 0
+            self.tehingupunktid = {}
 
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None

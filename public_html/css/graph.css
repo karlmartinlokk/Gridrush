@@ -142,11 +142,18 @@
 /* Graafik */
 
 .panel {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  margin-top: 0.75rem;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  padding: 0.75rem;
+  background-color: #14181b;
 }
 
 #price-container {
-  height: 95%;
+  position: relative;
+  height: 100%;
 }
 
 

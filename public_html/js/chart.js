@@ -220,6 +220,17 @@ function cssVarv(nimi) {
 }
 
 
+// Leiab, kas sellel hinnaperioodil osteti ('buy') või müüdi ('sell').
+// Server saadab praeguse päeva tehinguperioodid mänguseisuga.
+function tehinguSuund(indeks) {
+    const seis = window.kauplemine?.seis;
+
+    if (!seis || seis.date !== graafikuPaev) return null;
+
+    return seis.trade_points?.[indeks] ?? null;
+}
+
+
 // Teisendame Unix-timestambi Eesti kellaajaks.
 function kell(timestamp) {
     return new Date(timestamp * 1000).toLocaleTimeString(
@@ -971,6 +982,69 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
         graafikuPaev = andmed.date;
         nahtudIndeksid.clear();
 
+        // Ostu- ja müügipunktid on aku laadimise ja tühjenemise värvi.
+        const joonevarv = cssVarv("--color-text-primary");
+        const tehinguVarvid = {
+            buy: cssVarv("--color-charging"),
+            sell: cssVarv("--color-discharging")
+        };
+
+        // Tehinguperioodid on märgitud x-telje all ajaribal ja õrna taustatulbana.
+        // Hind kehtib punktist järgmise punktini, seega lõik on sama lai.
+        const ribaVarv = cssVarv("--color-border");
+
+        // Leiab praeguse päeva tehinguperioodide alguse ja lõpu x-koordinaadid.
+        function tehinguLoigud(graafik) {
+            const { chartArea, scales } = graafik;
+            const seis = window.kauplemine?.seis;
+            const punktid = seis?.date === graafikuPaev ? seis.trade_points ?? {} : {};
+
+            return Object.entries(punktid).map(([indeks, suund]) => {
+                const algus = scales.x.getPixelForValue(Number(indeks));
+                const lopp = Math.min(
+                    scales.x.getPixelForValue(Number(indeks) + 1),
+                    chartArea.right
+                );
+
+                return { algus, laius: lopp - algus, suund };
+            });
+        }
+
+        const tehinguRiba = {
+            id: 'tehinguRiba',
+
+            // Taustatulbad joonistame enne joont, et need jääksid selle taha.
+            beforeDatasetsDraw(graafik) {
+                const { ctx, chartArea } = graafik;
+
+                ctx.save();
+
+                for (const { algus, laius, suund } of tehinguLoigud(graafik)) {
+                    ctx.fillStyle = tehinguVarvid[suund] + '0F';
+                    ctx.fillRect(algus, chartArea.top, laius, chartArea.height);
+                }
+
+                ctx.restore();
+            },
+
+            afterDraw(graafik) {
+                const { ctx, chartArea } = graafik;
+                const y = chartArea.bottom + 3;
+                const korgus = 4;
+
+                ctx.save();
+                ctx.fillStyle = ribaVarv;
+                ctx.fillRect(chartArea.left, y, chartArea.width, korgus);
+
+                for (const { algus, laius, suund } of tehinguLoigud(graafik)) {
+                    ctx.fillStyle = tehinguVarvid[suund];
+                    ctx.fillRect(algus, y, laius, korgus);
+                }
+
+                ctx.restore();
+            }
+        };
+
         // Loome joongraafiku olemasoleva kujundusega.
         chart = new Chart(
             document.getElementById("priceChart"),
@@ -989,20 +1063,29 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
                         // Hinnad ilmuvad ükshaaval.
                         data: Array(hinnad.length).fill(null),
 
-                        borderColor: cssVarv("--color-text-primary"),
+                        borderColor: joonevarv,
                         borderWidth: 2,
 
                         // Näitame praegust punkti suuremana.
-                        pointRadius: context =>
-                            context.dataIndex === hetkeIndeks
-                                ? 4
-                                : 1,
+                        pointRadius: context => context.dataIndex === hetkeIndeks ? 4 : 1,
+
+                        pointBackgroundColor: context => tehinguVarvid[tehinguSuund(context.dataIndex)] ?? Chart.defaults.backgroundColor,
+
+                        pointBorderColor: context => tehinguVarvid[tehinguSuund(context.dataIndex)] ?? joonevarv,
+
+                        // Hind kehtib punktist järgmise punktini, seega värvime
+                        // joone tehingupunktist edasi nagu ajariba. undefined jätab tavavärvi.
+                        segment: {
+                            borderColor: context => tehinguVarvid[tehinguSuund(context.p0DataIndex)]
+                        },
 
                         pointHoverRadius: 5,
-                        tension: 0.1,
+                        tension: 0.2,
                         fill: false
                     }]
                 },
+
+                plugins: [tehinguRiba],
 
                 options: {
                     responsive: true,
@@ -1050,6 +1133,9 @@ async function laadiGraafik({ sailitaMang = false } = {}) {
                             ticks: {
                                 color: cssVarv("--color-text-secondary"),
                                 maxRotation: 0,
+
+                                // Jätame kellaaegade kohale ruumi tehinguribale.
+                                padding: 8,
 
                                 callback: function(value, index) {
                                     // Iga kahe tunni tagant kellaaeg.
