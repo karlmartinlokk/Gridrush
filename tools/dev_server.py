@@ -289,6 +289,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         aadress = urlsplit(self.path).path
 
+
         lubatud = {
             "/api/demo/start",
             "/api/demo/reset",
@@ -297,9 +298,15 @@ class Handler(SimpleHTTPRequestHandler):
             "/api/demo/pause",
             "/api/demo/speed",
             "/api/demo/next-day",
+
+            # Akud
             "/api/demo/buy-battery",
-            "/api/demo/switch-battery"
+            "/api/demo/switch-battery",
+
+            # Päikeseparkide ja tuulikute ostmine
+            "/api/demo/buy-generator"
         }
+
 
         if aadress not in lubatud:
             self.saada_json(
@@ -363,6 +370,14 @@ class Handler(SimpleHTTPRequestHandler):
                 elif aadress == "/api/demo/switch-battery":
                     mang.vaheta_aku(andmed.get("battery_id"))
                     tulemus = mang.seis()           
+
+                elif aadress == "/api/demo/buy-generator":
+
+                    tulemus = mang.osta_generaator(
+                        andmed.get("generator_id")
+                    )
+
+                
                 else:
                     tulemus = mang.uus_paev()
 

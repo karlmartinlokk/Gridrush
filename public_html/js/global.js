@@ -138,6 +138,12 @@ async function laadiParemPaneel() {
         kuvaPaevadeLoendur(seis);
         kuvaSeadistuseLaetus(seis);
         if (typeof kuvaOmatudAkud === 'function') kuvaOmatudAkud(seis);
+        if (
+            typeof kuvaOmatudGeneraatorid === 'function'
+        ) {
+            kuvaOmatudGeneraatorid(seis);
+        }
+
         return seis;
 
     } catch {

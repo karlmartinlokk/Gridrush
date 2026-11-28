@@ -272,6 +272,26 @@ kuvaHind: (hind, indeks) => {
     kuvaKauplemine();
 },
 
+    uuendaSeis: uusSeis => {
+
+        // Kui käsitsi ostu- või müügipäring on pooleli,
+        // ei kirjuta me selle tulemust teise päringuga üle.
+        if (paringKaib) {
+            return;
+        }
+
+        // Vigast või mitteaktiivset mänguseisu ei kasuta.
+        if (!uusSeis?.active) {
+            return;
+        }
+
+        manguseis = uusSeis;
+
+        kuvaKauplemine();
+    },
+
+
+
     // Jätkame serveripõhist mängukella.
     jatka: () => kauplemiseAPI('/api/demo/resume'),
 
