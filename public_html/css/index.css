@@ -129,6 +129,13 @@
   border: solid #82602A 3px;
 }
 
+.battery-buy-button[aria-pressed="true"],
+.battery-sell-button[aria-pressed="true"] {
+  background-color: #3B1E1E;
+  color: var(--color-loss);
+  border-color: #8A2E26;
+}
+
 .event-container {
   width: 100%;
   height: 20dvh;

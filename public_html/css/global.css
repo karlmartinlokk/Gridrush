@@ -14,8 +14,7 @@
   --color-button-hover: #414a54; /* nupu värv hiirega hõljumisel */
 
   --color-charging: #6CCBB8; /* peale laadimine */
-  --color-discharging: #E0B060; /* maha laadimine */
-  --color-gain: rgb(0, 200, 0); /* kasum/tõus  */
+  --color-discharging: #E0B060; /* maha laadimine */  --color-gain: rgb(0, 200, 0); /* kasum/tõus  */
   --color-loss: rgb(255, 60, 34); /* kahjum/langus */
 
   --color-battery-storage: #6aa5f0; /*kõrge mahuga aku */
