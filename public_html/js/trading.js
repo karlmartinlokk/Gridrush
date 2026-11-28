@@ -53,12 +53,12 @@ function kuvaKauplemine() {
 
     // Keelame nupud, kui aku mahust, energiast või rahast ei piisa.
     leia('.battery-buy-button').disabled =
-        !s || paringKaib ||
+        !s || paringKaib || Boolean(s.pending_order) ||
         s.energy + kogus > s.capacity ||
         s.balance - summa < -0.000001;
 
     leia('.battery-sell-button').disabled =
-        !s || paringKaib ||
+        !s || paringKaib || Boolean(s.pending_order) ||
         s.energy < kogus ||
         s.balance + summa < -0.000001;
 

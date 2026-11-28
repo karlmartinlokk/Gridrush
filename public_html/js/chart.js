@@ -573,6 +573,13 @@ async function uuendaNahtavaidHindu() {
 
         hinnad = andmed.prices;
         avaldatudIndeks = andmed.index;
+                // Uuendame raha, energiat ja ootel korraldust serverist.
+        if (
+            window.kauplemine?.aktiivne &&
+            !window.kauplemine.toimetab
+        ) {
+            await window.kauplemine.taasta();
+        }
 
         if (avaldatudIndeks > hetkeIndeks) {
             if (avamiseKaader === null) naitaAvaldatudPunktid();

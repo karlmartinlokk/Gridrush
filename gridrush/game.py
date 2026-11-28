@@ -40,9 +40,10 @@ class Kauplemismang:
         self.aktiivne_aku = 'starter'
         self.aku_maht = AKUD[self.aktiivne_aku]['maht']
         self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
-        self.max_tehingu_maht = self.aku_voimsus * 0.25 
+        self.max_tehingu_maht = self.aku_voimsus * 0.25
         self.perioodi_tehingumaht = 0.0
         self.viimane_tehinguperiood = None
+        self.ootel_korraldus = None
 
         self.omatud_akud = {'starter'}
 
@@ -93,7 +94,7 @@ class Kauplemismang:
 
             if aku_id in self.omatud_akud:
                 raise ManguViga("Sul on see aku juba olemas.")
-       
+
             self._uuenda_kell()
 
             aku_hind = AKUD[aku_id]['hind']
@@ -119,15 +120,104 @@ class Kauplemismang:
 
             if self.energia > uue_aku_maht:
                 raise ManguViga("Energiat on uue aku jaoks liiga palju.")
-           
+
             self.aktiivne_aku = aku_id
             self.aku_maht = AKUD[self.aktiivne_aku]['maht']
-            self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus'] 
-            self.max_tehingu_maht = self.aku_voimsus * 0.25 
+            self.aku_voimsus = AKUD[self.aktiivne_aku]['võimsus']
+            self.max_tehingu_maht = self.aku_voimsus * 0.25
+
+    def _arvuta_tehinguosa(self):
+        if self.ootel_korraldus is None:
+            return 0.0
+
+        praegune_periood = (self.paev, self.indeks)
+
+        if praegune_periood != self.viimane_tehinguperiood:
+            self.perioodi_tehingumaht = 0.0
+            self.viimane_tehinguperiood = praegune_periood
+
+        vaba_maht = max(0.0, self.max_tehingu_maht - self.perioodi_tehingumaht)
+
+        kogus = min(0.0, self.max_tehingu_maht - self.perioodi_tehingumaht)
+
+        kogus = min(self.ootel_korraldus['kogus_alles'], vaba_maht)
+
+        return math.floor((kogus + 1e-9) * 2) / 2.0  # ümardame 0.5 MWh täpsuseni
+
+
+    def _teosta_osatehing(self, tegevus, kogus):
+
+        hind = self.hinnad[self.indeks]['price']
+        summa = round(kogus * hind, 2)
+
+        eelmine_raha = self.raha
+        eelmine_energia = self.energia
+
+        if tegevus == 'buy':
+            if self.energia + kogus > self.aku_maht:
+                raise ManguViga('Akus pole piisavalt ruumi.')
+            if self.raha - summa < -0.000001:
+                raise ManguViga('Ostmiseks pole piisavalt raha.')
+            self.raha = round(self.raha - summa, 2)
+            self.energia += kogus
+        elif tegevus == 'sell':
+            if self.energia < kogus:
+                raise ManguViga('Akus pole piisavalt elektrit.')
+
+            summa = round(kogus * hind * EFEKTIIVSUS, 2)
+
+            if self.raha + summa < -0.000001:
+                raise ManguViga('Müümiseks pole piisavalt raha.')
+
+            self.raha = round(self.raha + summa, 2)
+            self.energia -= kogus
+
+        raha_muutus = round(self.raha - eelmine_raha, 2)
+
+        try:
+            self._salvesta_ajalugu(tehing={
+                'action': tegevus,
+                'quantity': kogus,
+                'cash_change': raha_muutus
+            })
+        except sqlite3.Error:
+            self.raha = eelmine_raha
+            self.energia = eelmine_energia
+            raise
+        self.perioodi_tehingumaht += kogus
+        self.paeva_tehinguid += 1
+
+
+    def _taida_ootel_korraldus(self, *, anna_viga=False):
+        if self.ootel_korraldus is None:
+            return
+
+        kogus = self._arvuta_tehinguosa()
+
+        if kogus <= 0.0:
+            return
+
+        tegevus = self.ootel_korraldus['tegevus']
+
+        try:
+            self._teosta_osatehing(tegevus, kogus)
+
+        except ManguViga:
+            # Kui tehing ebaõnnestub, tühistame ootel korralduse.
+            self.ootel_korraldus = None
+            if anna_viga:
+                raise
+            return
+        self.ootel_korraldus['kogus_alles'] = round(
+            self.ootel_korraldus['kogus_alles'] - kogus, 6
+        )
+
+        if self.ootel_korraldus['kogus_alles'] <= 0.0:
+            self.ootel_korraldus = None
 
 
     def _uuenda_kell(self):
-        """Uuendab mängukella ja salvestab ajaloo."""
+        """Uuendab mängukella ja täidab ootel korraldusi."""
 
         if not self.kaib:
             return
@@ -138,9 +228,7 @@ class Kauplemismang:
         if self.viimane_kell is not None:
             vahe = max(0.0, praegu - self.viimane_kell)
 
-            # Arvestame tegelikku mänguaega ainult päeva lõpuni.
-            jaanud_aeg = max(
-                0.0,
+            jaanud_aeg = max(0.0,
                 PAEVA_PIKKUS - self.mangitud_sekundid
             )
 
@@ -154,27 +242,46 @@ class Kauplemismang:
 
         self.viimane_kell = praegu
 
-        if self.mangitud_sekundid >= PAEVA_PIKKUS:
-            self.mangitud_sekundid = PAEVA_PIKKUS
-            self.paev_labi = True
-            self.kaib = False
-            self.viimane_kell = None
+        # Kontrollime, kas mängupäev sai läbi.
+        paev_loppeb = self.mangitud_sekundid >= PAEVA_PIKKUS
 
-        self.indeks = min(
+        if paev_loppeb:
+            self.mangitud_sekundid = PAEVA_PIKKUS
+
+        uus_indeks = min(
             len(self.hinnad) - 1,
             int(self.mangitud_sekundid / PERIOODI_PIKKUS)
         )
 
-        # Leiame suurima vara väärtuse ka vahepealsetel
-        # hinnapunktidel, millest kell võis üle liikuda.
-        tipp = max(
-            self.raha + self.energia * self.hinnad[i]["price"]
-            for i in range(eelmine_indeks, self.indeks + 1)
+        tipp = (
+            self.raha
+            + self.energia * self.hinnad[eelmine_indeks]["price"]
         )
 
-        # Salvestab ka lõpetatud mängupäeva.
-        self._salvesta_ajalugu(tipp=round(tipp, 2))
+        # Täidame korraldust igal vahepeal alanud perioodil.
+        for i in range(eelmine_indeks + 1, uus_indeks + 1):
+            self.indeks = i
 
+            tipp = max(
+                tipp,
+                self.raha + self.energia * self.hinnad[i]["price"]
+            )
+
+            self._taida_ootel_korraldus()
+
+            tipp = max(
+                tipp,
+                self.raha + self.energia * self.hinnad[i]["price"]
+            )
+
+        # Päeva lõpus peatame mängu.
+        if paev_loppeb:
+            self.paev_labi = True
+            self.kaib = False
+            self.viimane_kell = None
+            self.ootel_korraldus = None
+
+        self._salvesta_ajalugu(tipp=round(tipp, 2))
 
     def _seis(self):
         """Koostab mängija praeguse mänguseisu."""
@@ -218,6 +325,7 @@ class Kauplemismang:
             "profit_percent": round(kasum, 1),
             "day_trades": self.paeva_tehinguid,
             "day_profit": round(vara_vaartus - self.paeva_algvaartus, 2),
+            'pending_order': (dict(self.ootel_korraldus) if self.ootel_korraldus is not None else None),
 
             "elapsed_seconds": round(self.mangitud_sekundid, 6),
             "speed": self.kiirus,
@@ -336,6 +444,7 @@ class Kauplemismang:
             self.max_tehingu_maht = self.aku_voimsus * 0.25
             self.perioodi_tehingumaht = 0.0
             self.viimane_tehinguperiood = None
+            self.ootel_korraldus = None
 
             self.mangitud_sekundid = 0.0
             self.viimane_kell = None
@@ -452,17 +561,15 @@ class Kauplemismang:
             return self._seis()
 
 
-    
-    def tehing(self, tegevus, kogus):
-        """Ostab või müüb elektrit ja salvestab tehingu."""
 
-        if tegevus not in ("buy", "sell"):
+    def tehing(self, tegevus, kogus):
+        """Loob ostu- või müügikorralduse, mida täidetakse mitme perioodi jooksul."""
+
+        if tegevus not in ('buy', 'sell'):
             raise ManguViga("Tundmatu tehing.")
 
-        if (
-            type(kogus) not in (int, float) or not math.isfinite(kogus)
-            or not 0 < kogus <= self.aku_maht or kogus % 0.5 != 0
-        ):
+        if (type(kogus) not in (int, float)) or not math.isfinite(kogus) or kogus <= 0 or kogus % 0.5 != 0:
+
             raise ManguViga("Vigane elektrikogus.")
 
         with self.lukk:
@@ -473,87 +580,43 @@ class Kauplemismang:
 
             if self.paev_labi:
                 raise ManguViga(
-                    "Päev on lõppenud. Alusta uut päeva."
+                    "Päev on lõppenud."
                 )
 
-            # Kontrollime, kas algas uus hinnaperiood.
-            praegune_periood = (self.paev, self.indeks)
+            # Kui on juba ootel korraldus, tühistame selle.
+            if self.ootel_korraldus is not None:
+                raise ManguViga("Eelmine korraldus on juba olemas.")
 
-            if praegune_periood != self.viimane_tehinguperiood:
-                self.perioodi_tehingumaht = 0.0
-                self.viimane_tehinguperiood = praegune_periood
+            if kogus > self.aku_maht:
+                raise ManguViga("Kogus ületab aku mahutavuse.")
 
-            if self.perioodi_tehingumaht + kogus > self.max_tehingu_maht:
-                raise ManguViga("Aku võimsus ei võimalda sellel perioodil nii palju kaubelda.")
-            # Pausi ajal saab kaubelda peatatud hinnaga.
-            hind = self.hinnad[self.indeks]["price"]
-            summa = round(kogus * hind, 2)
-
-            # Jätame eelmise oleku meelde.
-            eelmine_raha = self.raha
-            eelmine_energia = self.energia
-
-            if tegevus == "buy":
-
+            if tegevus == 'buy':
                 if self.energia + kogus > self.aku_maht:
-                    raise ManguViga(
-                        "Akus pole piisavalt ruumi."
-                    )
-
-                if self.raha - summa < -0.000001:
-                    raise ManguViga(
-                        "Ostmiseks pole piisavalt raha."
-                    )
-
-                self.raha = round(self.raha - summa, 2)
-                self.energia += kogus
-
-                teade = f"Ostsid {kogus} MWh elektrit."
-
+                    raise ManguViga("Akus pole piisavalt ruumi.")
             else:
-
                 if self.energia < kogus:
-                    raise ManguViga(
-                        "Akus pole piisavalt elektrit."
-                    )
+                    raise ManguViga("Akus pole piisavalt elektrit.")
 
-                summa = round(kogus * hind * EFEKTIIVSUS, 2)
-               
-                # Negatiivse hinna puhul võib müümine maksta.
-                if self.raha + summa < -0.000001:
-                    raise ManguViga(
-                        "Müümiseks pole piisavalt raha."
-                    )
-
-                self.raha = round(self.raha + summa, 2)
-                self.energia -= kogus
-
-                teade = f"Müüsid {kogus} MWh elektrit."
-
-            # Arvutame tegeliku raha muutuse.
-            raha_muutus = round(
-                self.raha - eelmine_raha, 2
-            )
+            self.ootel_korraldus = {
+                'tegevus': tegevus,
+                'kogus_kokku': kogus,
+                'kogus_alles': kogus
+            }
 
             try:
-                # Salvestame ainult õnnestunud tehingud.
-                self._salvesta_ajalugu(tehing={
-                    "action": tegevus,
-                    "quantity": kogus,
-                    "cash_change": raha_muutus
-                })
-
-            except sqlite3.Error:
-                # Kui andmebaasi salvestamine ebaõnnestub,
-                # taastame tehingueelse raha ja aku seisu.
-                self.raha = eelmine_raha
-                self.energia = eelmine_energia
+                self._taida_ootel_korraldus(anna_viga=True)
+            except Exception:
+                self.ootel_korraldus = None
                 raise
-
-            self.perioodi_tehingumaht += kogus
-            self.paeva_tehinguid += 1
+            alles = (self.ootel_korraldus['kogus_alles']
+                if self.ootel_korraldus is not None
+                else 0.0
+            )
 
             vastus = self._seis()
-            vastus["message"] = teade
+            vastus['message'] = (
+                f'Korraldus {kogus} MWh vastu võetud,'
+                f' {alles} MWh.'
+             )
 
             return vastus
