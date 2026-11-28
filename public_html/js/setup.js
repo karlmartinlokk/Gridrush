@@ -178,8 +178,6 @@ function looAkuKaart(aku) {
             ${ost}
         </div>`;
 }
-
-function looGeneraatoriKaart(nimi, voimsus, ikoon) {
    
 function looGeneraatoriKaart(generaator, ikoon, liik) {
 
@@ -223,7 +221,7 @@ function looGeneraatoriKaart(generaator, ikoon, liik) {
     `;
 }
 
-}
+
 
 
 function looPood() {
